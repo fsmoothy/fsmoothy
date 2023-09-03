@@ -15,7 +15,17 @@ export interface IStateMachineParameters<
     ...Array<Transition>,
   ],
 > {
-  ctx?: Context | (() => Context);
+  ctx?:
+    | Context
+    | ((
+        parameters: IStateMachineParameters<
+          State,
+          Event,
+          Context,
+          Transition,
+          Transitions
+        >,
+      ) => Context);
   initial: State;
   transitions: Transitions;
   id?: string;
@@ -136,7 +146,7 @@ export class _StateMachine<
     this._current = parameters.initial;
     this._ctx =
       typeof parameters.ctx === 'function'
-        ? parameters.ctx()
+        ? parameters.ctx(parameters)
         : parameters.ctx ?? ({} as Context);
 
     this.checkDuplicateTransitions(parameters.transitions);
