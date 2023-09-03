@@ -19,5 +19,5 @@
         "message": "chore: Release ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }]
   ],
-  "repositoryUrl": "https://github.com/bondiano/typeorm-fsm"
+  "repositoryUrl": "https://github.com/fsmoothy/fsmoothy"
 }
