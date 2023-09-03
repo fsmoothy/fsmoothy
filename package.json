@@ -1,9 +1,9 @@
 {
   "name": "fsmoothy",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "The Smoothie Sipper 3000: A Hilarious Typed State Machine for Maximum Smoothie Drinking Fun!",
-    "main": "./index.js",
-    "types": "./index.d.ts",
+  "main": "./index.js",
+  "types": "./index.d.ts",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/fsmoothy/fsmoothy.git"
