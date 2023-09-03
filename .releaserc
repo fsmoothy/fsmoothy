@@ -1,0 +1,23 @@
+{
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    "@semantic-release/changelog",
+    ["@semantic-release/npm",
+      {
+        "pkgRoot": "dist"
+      }
+    ],
+    "@semantic-release/github",
+    ["@semantic-release/git", {
+        "assets": [
+          "package.json",
+          "README.md",
+          "CHANGELOG.md",
+          "dist/**/*.{js}"
+        ],
+        "message": "chore: Release ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }]
+  ],
+  "repositoryUrl": "https://github.com/bondiano/typeorm-fsm"
+}

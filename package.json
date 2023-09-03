@@ -1,0 +1,73 @@
+{
+  "name": "fsmoothy",
+  "version": "0.0.0",
+  "description": "The Smoothie Sipper 3000: A Hilarious Typed State Machine for Maximum Smoothie Drinking Fun!",
+    "main": "./index.js",
+    "types": "./index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fsmoothy/fsmoothy.git"
+  },
+  "keywords": [
+    "fsm",
+    "state-machine",
+    "typescript"
+  ],
+  "author": "Vassiliy Kuzenkov (bondiano)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fsmoothy/fsmoothy/issues"
+  },
+  "homepage": "https://github.com/fsmoothy/fsmoothy#readme",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "scripts": {
+    "prebuild": "npm run clean",
+    "build": "tsc --project tsconfig.build.json",
+    "postbuild": "cp -r package.json dist && cp -r README.md dist",
+    "lint": "eslint .",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "commit": "cz",
+    "docs:build": "typedoc src/index.ts --tsconfig tsconfig.build.json --plugin typedoc-plugin-mermaid",
+    "release": "semantic-release",
+    "clean": "rm -rf dist",
+    "postversion": "cp -r package.json .."
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^17.7.1",
+    "@commitlint/config-conventional": "^17.7.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@types/better-sqlite3": "^7.6.4",
+    "@types/jest": "^29.5.4",
+    "@typescript-eslint/eslint-plugin": "^6.4.1",
+    "@typescript-eslint/parser": "^6.4.1",
+    "better-sqlite3": "^8.5.2",
+    "cz-conventional-changelog": "^3.3.0",
+    "eslint": "^8.47.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-import-resolver-node": "^0.3.9",
+    "eslint-plugin-import": "^2.28.1",
+    "eslint-plugin-lodash": "^7.4.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "eslint-plugin-sonarjs": "^0.21.0",
+    "eslint-plugin-unicorn": "^48.0.1",
+    "jest": "^29.6.4",
+    "prettier": "^3.0.2",
+    "semantic-release": "^21.1.1",
+    "ts-jest": "^29.1.1",
+    "typedoc": "^0.25.0",
+    "typedoc-plugin-mermaid": "^1.10.0",
+    "typescript": "^5.2.2"
+  },
+  "commit": "cz",
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  }
+}
