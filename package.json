@@ -32,6 +32,7 @@
     "test:cov": "jest --coverage",
     "commit": "cz",
     "docs:build": "typedoc src/index.ts --tsconfig tsconfig.build.json --plugin typedoc-plugin-mermaid",
+    "postdocs:build": "cp -r logo docs",
     "release": "semantic-release",
     "clean": "rm -rf dist",
     "postversion": "cp -r package.json .."

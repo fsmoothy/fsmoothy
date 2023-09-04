@@ -4,7 +4,7 @@ import { AllowedNames, Guard, Callback, ITransition } from './types';
 export interface IStateMachineParameters<
   State extends AllowedNames | Array<AllowedNames>,
   Event extends AllowedNames,
-  Context extends object,
+  Context extends object = object,
   Transition extends ITransition<State, Event, Context> = ITransition<
     State,
     Event,
@@ -291,7 +291,7 @@ export class _StateMachine<
         const transitions = this._transitions.get(event);
 
         // we already checked if the event is allowed
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-non-null-asserted-optional-chain
+        // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
         const transition = transitions?.get(this._current)!;
 
         this.executeTransition(transition, ...arguments_).then(() =>
@@ -473,12 +473,12 @@ export class _StateMachine<
  *
  * @example
  * const stateMachine = new StateMachine({
- *  id: '1',
- *  initial: State.idle,
- *  transitions: [
- *   t(State.idle, Event.fetch, State.pending),
- *   t(State.pending, Event.resolve, State.idle),
- *  ],
+ *   id: '1',
+ *   initial: State.idle,
+ *   transitions: [
+ *    t(State.idle, Event.fetch, State.pending),
+ *    t(State.pending, Event.resolve, State.idle),
+ *   ],
  * });
  *
  * @returns New state machine.

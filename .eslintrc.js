@@ -182,7 +182,6 @@ module.exports = {
         '@typescript-eslint/consistent-generic-constructors': ERROR,
         '@typescript-eslint/prefer-nullish-coalescing': ERROR,
         '@typescript-eslint/prefer-optional-chain': ERROR,
-        '@typescript-eslint/no-non-null-assertion': ERROR,
         'no-return-await': OFF,
         '@typescript-eslint/return-await': [ERROR, 'always'],
       },
