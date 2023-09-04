@@ -6,6 +6,21 @@
 
 ## Index
 
+- [Usage](#usage)
+  - [Events and States](#events-and-states)
+  - [StateMachineEntity](#statemachineentity)
+  - [Transitions](#transitions)
+  - [Make transition](#make-transition)
+  - [Current state](#current-state)
+  - [Transition availability](#transition-availability)
+  - [Subscribers](#subscribers)
+  - [Lifecycle](#lifecycle)
+  - [Bound lifecycle methods](#bound-lifecycle-methods)
+  - [Error handling](#error-handling)
+- [Installation](#installation)
+- [Examples](#examples)
+- [Latest Changes](#latest-changes)
+
 ## Usage
 
 Let's create a basic order state machine to showcase the features of the library. The diagram below illustrates the states and transitions of the state machine.
