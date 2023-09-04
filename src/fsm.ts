@@ -1,5 +1,5 @@
 import { StateMachineError } from './fsm.error';
-import { AllowedNames, Guard, Callback, ITransition } from './types';
+import { AllowedNames, Callback, ITransition } from './types';
 
 export interface IStateMachineParameters<
   State extends AllowedNames | Array<AllowedNames>,
@@ -70,44 +70,12 @@ export type StateMachineConstructor = {
   ): IStateMachine<State, Event, Context>;
 };
 
-function noop() {
-  return;
-}
-
 function capitalize(parameter: unknown) {
   if (typeof parameter !== 'string') {
     return parameter;
   }
 
   return parameter.charAt(0).toUpperCase() + parameter.slice(1);
-}
-
-/**
- * Creates a new transition.
- * @param from - From state.
- * @param from[] - From states.
- * @param event - Event name.
- * @param to - To state.
- * @param guard - Guard function.
- */
-export function t<
-  State extends AllowedNames,
-  Event extends AllowedNames,
-  Context extends object,
->(
-  from: Array<State> | State,
-  event: Event,
-  to: State,
-  guard?: Guard<Context>,
-): ITransition<State, Event, Context> {
-  return {
-    from,
-    event,
-    to,
-    onExit: noop,
-    onEnter: noop,
-    guard: guard ?? (() => true),
-  };
 }
 
 export class _StateMachine<

@@ -77,38 +77,23 @@ const stateMachineParameters: IStateMachineParameters<
         context.time.hours === context.alarm.hours &&
         context.time.minutes === context.alarm.minutes,
     ),
-    {
-      from: ClockState.Clock,
-      event: ClockEvent.ClickH,
-      to: ClockState.Clock,
+    t(ClockState.Clock, ClockEvent.ClickH, ClockState.Clock, {
       onEnter: addHours('time'),
-    },
-    {
-      from: ClockState.Clock,
-      event: ClockEvent.ClickM,
-      to: ClockState.Clock,
+    }),
+    t(ClockState.Clock, ClockEvent.ClickM, ClockState.Clock, {
       onEnter: addMinutes('time'),
-    },
-    {
-      from: ClockState.Alarm,
-      event: ClockEvent.ClickH,
-      to: ClockState.Alarm,
+    }),
+    t(ClockState.Alarm, ClockEvent.ClickH, ClockState.Alarm, {
       onEnter: addHours('alarm'),
-    },
-    {
-      from: ClockState.Alarm,
-      event: ClockEvent.ClickM,
-      to: ClockState.Alarm,
+    }),
+    t(ClockState.Alarm, ClockEvent.ClickM, ClockState.Alarm, {
       onEnter: addMinutes('alarm'),
-    },
-    {
-      from: ClockState.Clock,
-      event: ClockEvent.LongClickMode,
-      to: ClockState.Clock,
+    }),
+    t(ClockState.Clock, ClockEvent.LongClickMode, ClockState.Clock, {
       onEnter(context) {
         context.isAlarmOn = !context.isAlarmOn;
       },
-    },
+    }),
   ],
 };
 

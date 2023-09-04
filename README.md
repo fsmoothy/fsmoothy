@@ -47,12 +47,17 @@ enum OrderItemState {
   shipping = 'shipping',
   delivered = 'delivered',
 }
+
 enum OrderItemEvent {
   create = 'create',
   assemble = 'assemble',
   transfer = 'transfer',
   ship = 'ship',
   deliver = 'deliver',
+}
+
+interface IOrderItemContext {
+  place: string;
 }
 ```
 
@@ -66,7 +71,6 @@ import { StateMachine, t } from 'fsmoothy';
 const orderItemFSM = new StateMachine({
   id: 'orderItemsStatus',
   initial: OrderItemState.draft,
-  persistContext: true,
   ctx: {
     place: 'My warehouse',
   },
@@ -77,17 +81,19 @@ const orderItemFSM = new StateMachine({
       OrderItemEvent.assemble,
       OrderItemState.warehouse,
     ),
-    {
-      from: OrderItemState.warehouse,
-      event: OrderItemEvent.transfer,
-      to: OrderItemState.warehouse,
-      guard(context: IOrderItemContext, place: string) {
-        return context.place !== place;
+    t(
+      OrderItemState.warehouse,
+      OrderItemEvent.transfer,
+      OrderItemState.warehouse,
+      {
+        guard(context: IOrderItemContext, place: string) {
+          return context.place !== place;
+        },
+        onExit(context: IOrderItemContext, place: string) {
+          context.place = place;
+        },
       },
-      onExit(context: IOrderItemContext, place: string) {
-        context.place = place;
-      },
-    },
+    ),
     t(
       [OrderItemState.assembly, OrderItemState.warehouse],
       OrderItemEvent.ship,
@@ -118,10 +124,25 @@ Let's take a look at the `StateMachineEntity` function. It accepts an object wit
 The most common way to define a transition is by using the `t` function, which requires three arguments (guard is optional).
 
 ```typescript
-t(from: State, event: Event, to: State, guard?: (context: Context) => boolean)
+t(from: State | State[], event: Event, to: State, guard?: (context: Context) => boolean);
 ```
 
-However, we may need to define more complex transitions. In such cases, we can use an object with the following attributes:
+We also able to pass optional `onEnter` and `onExit` functions to the transition as options:
+
+```typescript
+t(
+  from: State | State[],
+  event: Event,
+  to: State,
+  options?: {
+    guard?: (context: Context) => boolean;
+    onEnter?: (context: Context) => void;
+    onExit?: (context: Context) => void;
+  },
+);
+```
+
+In such cases, we're using next options:
 
 - `from` - represents the state from which the transition is permitted
 - `event` - denotes the event that triggers the transition
@@ -142,6 +163,30 @@ await orderItemFSM.ship();
 ```
 
 We're passing the `place` argument to the `transfer` method. It will be passed to the `guard` and `onExit` functions.
+
+### Dynamic add transitions
+
+We can add transition dynamically using the `addTransition` method.
+
+```typescript
+const newOrderItemFSM = orderItemFSM.addTransition([
+  t(
+    OrderItemState.shipping,
+    OrderItemEvent.transfer,
+    OrderItemState.shipping,
+    {
+      guard(context: IOrderItemContext, place: string) {
+        return context.place !== place;
+      },
+      onExit(context: IOrderItemContext, place: string) {
+        context.place = place;
+      },
+    },
+  ),
+]);
+```
+
+It returns a new instance of the state machine with the added transition. Context and current state will be copied to the new instance.
 
 ### Current state
 

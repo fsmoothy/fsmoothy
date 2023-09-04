@@ -1,4 +1,5 @@
-import { StateMachine, t } from '../fsm';
+import { StateMachine } from '../fsm';
+import { t } from '../transition';
 
 import { isStateMachineError } from './../fsm.error';
 

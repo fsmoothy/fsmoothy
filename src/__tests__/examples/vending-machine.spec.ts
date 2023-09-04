@@ -35,34 +35,22 @@ const vendingMachineStateMachineParameters: IStateMachineParameters<
     depositedCoins: 0,
   }),
   transitions: [
-    {
-      from: State.Idle,
-      event: Event.SelectProduct,
-      to: State.ProductSelected,
+    t(State.Idle, Event.SelectProduct, State.ProductSelected, {
       onEnter(context, productId: number) {
         context.selectedProductId = productId;
       },
-    },
-    {
-      from: State.Idle,
-      event: Event.DepositCoin,
-      to: State.Idle,
+    }),
+    t(State.Idle, Event.DepositCoin, State.Idle, {
       onEnter(context, coin: number) {
         context.depositedCoins += coin;
       },
-    },
-    {
-      from: State.ProductSelected,
-      event: Event.DepositCoin,
-      to: State.ProductSelected,
+    }),
+    t(State.ProductSelected, Event.DepositCoin, State.ProductSelected, {
       onEnter(context, coin: number) {
         context.depositedCoins += coin;
       },
-    },
-    {
-      from: State.ProductSelected,
-      event: Event.ConfirmPurchase,
-      to: State.Dispensing,
+    }),
+    t(State.ProductSelected, Event.ConfirmPurchase, State.Dispensing, {
       onExit(context) {
         context.depositedCoins -=
           context.products.get(context.selectedProductId!)?.price ?? 0;
@@ -74,7 +62,7 @@ const vendingMachineStateMachineParameters: IStateMachineParameters<
               (context.products.get(context.selectedProductId)?.price ?? 0),
         );
       },
-    },
+    }),
     t(State.Dispensing, Event.Reset, State.Idle),
   ],
 };
