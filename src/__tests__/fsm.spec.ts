@@ -264,5 +264,43 @@ describe('StateMachine', () => {
 
       stateMachine.off(Event.fetch, callback);
     });
+
+    it('should attach subscriber on init', async () => {
+      const callback = jest.fn();
+
+      const stateMachine = new StateMachine({
+        initial: State.idle,
+        transitions: [t(State.idle, Event.fetch, State.pending)],
+        subscribers: {
+          [Event.fetch]: [callback],
+        },
+      });
+
+      await stateMachine.fetch();
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    it('should pass context and this as state machine to subscriber', async () => {
+      let handlerContext: unknown;
+
+      const callback = jest.fn().mockImplementation(function (this: unknown) {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
+        handlerContext = this;
+      });
+
+      const stateMachine = new StateMachine({
+        initial: State.idle,
+        ctx: { foo: 'bar' },
+        transitions: [t(State.idle, Event.fetch, State.pending)],
+        subscribers: {
+          [Event.fetch]: [callback],
+        },
+      });
+
+      await stateMachine.fetch();
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith(stateMachine.context);
+      expect(handlerContext).toBe(stateMachine);
+    });
   });
 });

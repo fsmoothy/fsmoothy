@@ -239,6 +239,37 @@ await orderItemFSM.create();
 orderItemFSM.off(OrderItemEvent.create, subscriber);
 ```
 
+Also you're able to subscribe to transaction on initialization.
+
+```typescript
+const orderItemFSM = new StateMachine({
+  initial: OrderItemState.draft,
+  transitions: [
+    t(OrderItemState.draft, OrderItemEvent.create, OrderItemState.assembly),
+    t(
+      OrderItemState.assembly,
+      OrderItemEvent.assemble,
+      OrderItemState.warehouse,
+    ),
+    t(
+      [OrderItemState.assembly, OrderItemState.warehouse],
+      OrderItemEvent.ship,
+      OrderItemState.shipping,
+    ),
+    t(
+      OrderItemState.shipping,
+      OrderItemEvent.deliver,
+      OrderItemState.delivered,
+    ),
+  ],
+  subscribers: {
+    [OrderItemEvent.create]: [(state: OrderItemState) => {
+      console.log(state);
+    }]
+  }
+});
+```
+
 ### Lifecycle
 
 The state machine has the following lifecycle methods in the order of execution:

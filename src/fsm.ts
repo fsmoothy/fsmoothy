@@ -1,6 +1,10 @@
 import { StateMachineError } from './fsm.error';
 import { AllowedNames, Callback, ITransition } from './types';
 
+type Subscribers<Event extends AllowedNames, Context extends object> = {
+  [key in Event]: Array<Callback<Context>>;
+};
+
 export interface IStateMachineParameters<
   State extends AllowedNames | Array<AllowedNames>,
   Event extends AllowedNames,
@@ -29,6 +33,7 @@ export interface IStateMachineParameters<
   initial: State;
   transitions: Transitions;
   id?: string;
+  subscribers?: Subscribers<Event, Context>;
 }
 
 type StateMachineEvents<Event extends AllowedNames> = {
@@ -121,6 +126,7 @@ export class _StateMachine<
 
     this._allowedEvents = this.prepareEvents(parameters.transitions);
     this._transitions = this.prepareTransitions(parameters.transitions);
+    this._subscribers = this.prepareSubscribers(parameters.subscribers);
 
     this.populateEventMethods(parameters.transitions);
     this.populateCheckers(parameters.transitions);
@@ -149,16 +155,12 @@ export class _StateMachine<
     NewState extends AllowedNames,
     NewEvent extends AllowedNames,
   >(transition: ITransition<NewState, NewEvent, Context>) {
-    const parameters: IStateMachineParameters<
-      State | NewState,
-      Event | NewEvent,
-      Context
-    > = {
+    const parameters = {
       ...this._initialParameters,
       initial: this._current,
       ctx: this._ctx,
       transitions: [...this._initialParameters.transitions, transition],
-    };
+    } as IStateMachineParameters<State | NewState, Event | NewEvent, Context>;
 
     const _stateMachine = new StateMachine(parameters);
 
@@ -269,6 +271,29 @@ export class _StateMachine<
     });
   }
 
+  private prepareSubscribers(subscribers?: Subscribers<Event, Context>) {
+    const _subscribers = new Map<
+      Event,
+      Map<Callback<Context>, Callback<Context>>
+    >();
+
+    if (!subscribers) {
+      return _subscribers;
+    }
+
+    for (const [event, callbacks] of Object.entries(subscribers)) {
+      if (!_subscribers.has(event as Event)) {
+        _subscribers.set(event as Event, new Map());
+      }
+
+      for (const callback of callbacks as Array<Callback<Context>>) {
+        _subscribers.get(event as Event)?.set(callback, callback.bind(this));
+      }
+    }
+
+    return _subscribers;
+  }
+
   private prepareEvents(
     transitions: Array<ITransition<State, Event, Context>>,
   ) {
@@ -293,7 +318,6 @@ export class _StateMachine<
   ) {
     return transitions.reduce((accumulator, transition) => {
       const { from, event } = transition;
-
       const froms = Array.isArray(from) ? from : [from];
 
       if (!accumulator.has(event)) {
@@ -336,7 +360,6 @@ export class _StateMachine<
 
     for (const transition of transitions) {
       const { from, event } = transition;
-
       const froms = Array.isArray(from) ? from : [from];
 
       for (const from of froms) {
