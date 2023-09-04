@@ -70,9 +70,11 @@ export function t<
     onExit = _noop,
     onEnter = _noop,
     guard = () => true,
+    ...rest
   } = guardOrOptions ?? {};
 
   return {
+    ...rest,
     from,
     event,
     to,
