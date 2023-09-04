@@ -8,7 +8,8 @@
 
 - [Usage](#usage)
   - [Events and States](#events-and-states)
-  - [StateMachineEntity](#statemachineentity)
+  - [State Machine](#state-machine)
+  - [StateMachine Parameters](#statemachine-parameters)
   - [Transitions](#transitions)
   - [Make transition](#make-transition)
   - [Current state](#current-state)
@@ -108,16 +109,15 @@ const orderItemFSM = new StateMachine({
 });
 ```
 
-### StateMachineEntity
+### StateMachine Parameters
 
-Let's take a look at the `StateMachineEntity` function. It accepts an object with the following properties:
+Let's take a look at the `IStateMachineParameters<State, Event, Context>` interface. It has the following properties:
 
 - `id` - a unique identifier for the state machine (used for debugging purposes)
 - `initial` - the initial state of the state machine
-- `persistContext` - if set to `true`, the state machine context will be saved to the database. Default value is `false`
-- `saveAfterTransition` - if `true`, the state machine will be saved to the database after each transition. Default value is `true`
 - `ctx` - initial context of the state machine
 - `transitions` - an array of transitions
+- `subscribers` - an object with subscribers array for events
 
 ### Transitions
 
@@ -153,7 +153,7 @@ In such cases, we're using next options:
 
 ### Make transition
 
-To make a transition, we need to call the `transition` method of the entity or use methods with the same name as the event. State changes will persist to the database by default.
+To make a transition, we need to call the `transition` method of the fsm or use methods with the same name as the event. State changes will persist to the database by default.
 
 ```typescript
 await orderItemFSM.create();
