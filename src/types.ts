@@ -1,4 +1,5 @@
 export type AllowedNames = string | number;
+export type AllowedEvents = string | number | symbol;
 
 export type Callback<
   Context extends object,
@@ -13,7 +14,7 @@ export type Guard<Context extends object, T extends Array<any> = Array<any>> =
 
 export interface ITransition<
   State extends AllowedNames | Array<AllowedNames>,
-  Event extends AllowedNames,
+  Event extends AllowedEvents,
   Context extends object,
 > {
   from: Array<State> | State;
@@ -21,5 +22,6 @@ export interface ITransition<
   to: State;
   onEnter?: Callback<Context>;
   onExit?: Callback<Context>;
+  onLeave?: Callback<Context>;
   guard?: Guard<Context>;
 }

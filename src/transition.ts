@@ -3,6 +3,7 @@ import { AllowedNames, Callback, Guard, ITransition } from './types';
 interface ITransitionOptions<Context extends object> {
   onExit?: Callback<Context>;
   onEnter?: Callback<Context>;
+  onLeave?: Callback<Context>;
   guard?: Guard<Context>;
 }
 
@@ -60,6 +61,7 @@ export function t<
       from,
       event,
       to,
+      onLeave: _noop,
       onExit: _noop,
       onEnter: _noop,
       guard: guardOrOptions,
@@ -69,6 +71,7 @@ export function t<
   const {
     onExit = _noop,
     onEnter = _noop,
+    onLeave = _noop,
     guard = () => true,
     ...rest
   } = guardOrOptions ?? {};
@@ -78,6 +81,7 @@ export function t<
     from,
     event,
     to,
+    onLeave,
     onExit,
     onEnter,
     guard,

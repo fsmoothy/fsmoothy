@@ -1,13 +1,13 @@
 import { StateMachineError } from './fsm.error';
-import { AllowedNames, Callback, ITransition } from './types';
+import { AllowedEvents, AllowedNames, Callback, ITransition } from './types';
 
-type Subscribers<Event extends AllowedNames, Context extends object> = {
+type Subscribers<Event extends AllowedEvents, Context extends object> = {
   [key in Event]: Array<Callback<Context>>;
 };
 
 export interface IStateMachineParameters<
   State extends AllowedNames | Array<AllowedNames>,
-  Event extends AllowedNames,
+  Event extends AllowedEvents,
   Context extends object = object,
   Transition extends ITransition<State, Event, Context> = ITransition<
     State,
@@ -36,16 +36,20 @@ export interface IStateMachineParameters<
   subscribers?: Subscribers<Event, Context>;
 }
 
-type StateMachineEvents<Event extends AllowedNames> = {
+type StateMachineEvents<Event extends AllowedEvents> = {
   /**
    * @param arguments_ - Arguments to pass to lifecycle hooks.
    */
   [key in Event]: <T extends Array<unknown>>(...arguments_: T) => Promise<void>;
 };
 
-type CapitalizeString<S> = S extends string ? Capitalize<S> : S;
+type CapitalizeString<S> = S extends symbol
+  ? never
+  : S extends string
+  ? Capitalize<S>
+  : S;
 
-type StateMachineTransitionCheckers<Event extends AllowedNames> = {
+type StateMachineTransitionCheckers<Event extends AllowedEvents> = {
   /**
    * @param arguments_ - Arguments to pass to guard.
    */
@@ -58,7 +62,7 @@ type StateMachineCheckers<State extends AllowedNames> = {
 
 export type IStateMachine<
   State extends AllowedNames,
-  Event extends AllowedNames,
+  Event extends AllowedEvents,
   Context extends object,
 > = _StateMachine<State, Event, Context> &
   StateMachineEvents<Event> &
@@ -68,7 +72,7 @@ export type IStateMachine<
 export type StateMachineConstructor = {
   new <
     State extends AllowedNames,
-    Event extends AllowedNames,
+    Event extends AllowedEvents,
     Context extends object,
   >(
     parameters: IStateMachineParameters<State, Event, Context>,
@@ -83,12 +87,14 @@ function capitalize(parameter: unknown) {
   return parameter.charAt(0).toUpperCase() + parameter.slice(1);
 }
 
+export const IdentityEvent = Symbol('IdentityEvent');
+
 export class _StateMachine<
   State extends AllowedNames,
-  Event extends AllowedNames,
+  Event extends AllowedEvents,
   Context extends object,
 > {
-  protected _current: State;
+  protected _current: ITransition<State, Event, Context>;
   protected _id: string;
   protected _ctx: Context;
   /**
@@ -116,7 +122,11 @@ export class _StateMachine<
   constructor(parameters: IStateMachineParameters<State, Event, Context>) {
     this._initialParameters = parameters;
     this._id = parameters.id ?? 'fsm';
-    this._current = parameters.initial;
+    this._current = {
+      to: parameters.initial,
+      from: parameters.initial,
+      event: IdentityEvent as Event,
+    };
     this._ctx =
       typeof parameters.ctx === 'function'
         ? parameters.ctx(parameters)
@@ -136,7 +146,7 @@ export class _StateMachine<
    * Current state.
    */
   get current(): State {
-    return this._current;
+    return this._current.to;
   }
 
   /**
@@ -153,11 +163,11 @@ export class _StateMachine<
    */
   public addTransition<
     NewState extends AllowedNames,
-    NewEvent extends AllowedNames,
+    NewEvent extends AllowedEvents,
   >(transition: ITransition<NewState, NewEvent, Context>) {
     const parameters = {
       ...this._initialParameters,
-      initial: this._current,
+      initial: this.current,
       ctx: this._ctx,
       transitions: [...this._initialParameters.transitions, transition],
     } as IStateMachineParameters<State | NewState, Event | NewEvent, Context>;
@@ -178,7 +188,7 @@ export class _StateMachine<
    * @param state - State to check.
    */
   public is(state: State): boolean {
-    return this._current === state;
+    return this.current === state;
   }
 
   /**
@@ -189,17 +199,17 @@ export class _StateMachine<
     event: Event,
     ...arguments_: Arguments
   ) {
-    const allowedEvents = this._allowedEvents.get(this._current);
+    const allowedEvents = this._allowedEvents.get(this.current);
     if (!allowedEvents?.has(event)) {
       return false;
     }
 
     const transitions = this._transitions.get(event);
-    if (!transitions?.has(this._current)) {
+    if (!transitions?.has(this.current)) {
       return false;
     }
 
-    const { guard } = transitions.get(this._current) ?? {};
+    const { guard } = transitions.get(this.current) ?? {};
 
     return await (guard?.(this._ctx, ...arguments_) ?? true);
   }
@@ -226,7 +236,7 @@ export class _StateMachine<
    */
   public off(event: Event, callback: Callback<Context>) {
     if (!this._subscribers.has(event)) {
-      console.warn(`Event ${event} is not subscribed in ${this._id}`);
+      console.warn(`Event ${String(event)} is not subscribed in ${this._id}`);
       return;
     }
 
@@ -250,7 +260,9 @@ export class _StateMachine<
       if (!(await this.can(event, ...arguments_))) {
         reject(
           new StateMachineError(
-            `Event ${event} is not allowed in state ${this._current} of ${this._id}`,
+            `Event ${String(event)} is not allowed in state ${
+              this.current
+            } of ${this._id}`,
           ),
         );
         return;
@@ -262,7 +274,7 @@ export class _StateMachine<
 
         // we already checked if the event is allowed
         // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
-        const transition = transitions?.get(this._current)!;
+        const transition = transitions?.get(this.current)!;
 
         this.executeTransition(transition, ...arguments_).then(() =>
           resolve(this),
@@ -368,7 +380,9 @@ export class _StateMachine<
         }
 
         if (transitionsMap.get(from)?.has(event)) {
-          console.warn(`Duplicate transition from ${from} on event ${event}`);
+          console.warn(
+            `Duplicate transition from ${from} on event ${String(event)}`,
+          );
         }
 
         transitionsMap.get(from)?.set(event, transition);
@@ -404,6 +418,7 @@ export class _StateMachine<
   private bindToCallbacks(transition: ITransition<State, Event, Context>) {
     return {
       ...transition,
+      onLeave: transition.onLeave?.bind(this),
       onEnter: transition.onEnter?.bind(this),
       onExit: transition.onExit?.bind(this),
       guard: transition.guard?.bind(this),
@@ -418,8 +433,9 @@ export class _StateMachine<
     const subscribers = this._subscribers.get(event);
 
     try {
+      await this._current.onLeave?.(this._ctx, ...arguments_);
       await onEnter?.(this._ctx, ...arguments_);
-      this._current = to ?? this._current;
+      this._current = transition ?? this._current;
 
       for (const subscriber of subscribers?.values() ?? []) {
         await subscriber(this._ctx, ...arguments_);
@@ -460,6 +476,7 @@ export class _StateMachine<
  * @param parameters.transitions[].to - To state.
  * @param parameters.transitions[].onEnter - Callback to execute on enter.
  * @param parameters.transitions[].onExit - Callback to execute on exit.
+ * @param parameters.transitions[].onLeave - Callback to execute on transition to the next state.
  * @param parameters.transitions[].guard - Guard function.
  *
  * @example
@@ -476,7 +493,7 @@ export class _StateMachine<
  */
 export const StateMachine = function <
   const State extends AllowedNames,
-  const Event extends AllowedNames,
+  const Event extends AllowedEvents,
   Context extends object,
 >(
   this: _StateMachine<State, Event, Context>,

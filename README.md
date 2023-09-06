@@ -276,6 +276,7 @@ The state machine has the following lifecycle methods in the order of execution:
 
 ```
 - guard
+- onLeave (from previous transition)
 - onEnter
 - transition
 - subscribers

@@ -50,7 +50,7 @@ describe('StateMachine', () => {
       expect(stateMachine.current).toBe(State.pending);
     });
 
-    it('should call onEnter and onExit with context, arguments and bound state machine', async () => {
+    it('should call onEnter, onExit and onLeave with context, arguments and bound state machine', async () => {
       let handlerContext: unknown;
 
       const handler = jest.fn().mockImplementation(function (this: unknown) {
@@ -70,6 +70,7 @@ describe('StateMachine', () => {
             to: State.pending,
             onEnter: handler,
             onExit: handler,
+            onLeave: handler,
           },
           t(State.pending, Event.resolve, State.idle),
         ],
@@ -78,6 +79,10 @@ describe('StateMachine', () => {
       await stateMachine.transition(Event.fetch, 'test');
       expect(handler).toHaveBeenCalledTimes(2);
       expect(handler).toHaveBeenCalledWith(context, 'test');
+      expect(handlerContext).toBe(stateMachine);
+
+      await stateMachine.resolve();
+      expect(handler).toHaveBeenCalledTimes(3);
       expect(handlerContext).toBe(stateMachine);
     });
 
