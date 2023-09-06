@@ -1,5 +1,5 @@
 import { StateMachineError } from './fsm.error';
-import { IdentityEvent } from './symbols';
+import { All } from './symbols';
 import { AllowedNames, Callback, ITransition } from './types';
 
 type Subscribers<Event extends AllowedNames, Context extends object> = {
@@ -80,6 +80,8 @@ export type StateMachineConstructor = {
   ): IStateMachine<State, Event, Context>;
 };
 
+const IdentityEvent = Symbol('IdentityEvent') as any;
+
 function capitalize(parameter: unknown) {
   if (typeof parameter !== 'string') {
     return parameter;
@@ -111,7 +113,7 @@ export class _StateMachine<
   /**
    * Map of allowed events by from-state.
    */
-  protected _AllowedNames: Map<State, Set<Event>>;
+  protected _allowedNames: Map<State, Set<Event>>;
   /**
    * Map of transitions by event and from-state.
    */
@@ -142,7 +144,7 @@ export class _StateMachine<
 
     this.checkDuplicateTransitions(parameters.transitions);
 
-    this._AllowedNames = this.prepareEvents(parameters.transitions);
+    this._allowedNames = this.prepareEvents(parameters.transitions);
     this._transitions = this.prepareTransitions(parameters.transitions);
     this._subscribers = this.prepareSubscribers(parameters.subscribers);
 
@@ -175,7 +177,7 @@ export class _StateMachine<
    * All states in the state machine.
    */
   get states(): Array<State> {
-    return [...this._AllowedNames.keys()];
+    return [...this._allowedNames.keys()];
   }
 
   /**
@@ -221,12 +223,20 @@ export class _StateMachine<
     event: Event,
     ...arguments_: Arguments
   ) {
-    const AllowedNames = this._AllowedNames.get(this.current);
-    if (!AllowedNames?.has(event)) {
+    const allowedNames = this._allowedNames.get(this.current);
+    const transitions = this._transitions.get(event);
+
+    // check has from: all
+    if (transitions?.has(All)) {
+      const { guard } = transitions.get(All) ?? {};
+
+      return await (guard?.(this._ctx, ...arguments_) ?? true);
+    }
+
+    if (!allowedNames?.has(event)) {
       return false;
     }
 
-    const transitions = this._transitions.get(event);
     if (!transitions?.has(this.current)) {
       return false;
     }
@@ -294,9 +304,10 @@ export class _StateMachine<
       setTimeout(() => {
         const transitions = this._transitions.get(event);
 
-        // we already checked if the event is allowed
-        // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
-        const transition = transitions?.get(this.current)!;
+        const transition =
+          // we already checked if the event is allowed
+          // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+          transitions?.get(this.current) ?? transitions?.get(All)!;
 
         this.executeTransition(transition, ...arguments_).then(() =>
           resolve(this),
@@ -446,8 +457,10 @@ export class _StateMachine<
       const capitalizedTo = capitalize(to);
       const capitalizedEvent = capitalize(event);
 
-      // @ts-expect-error We need to assign the method to the instance.
-      this[`is${capitalizedFrom}`] = () => this.is(from);
+      if (from !== All) {
+        // @ts-expect-error We need to assign the method to the instance.
+        this[`is${capitalizedFrom}`] = () => this.is(from);
+      }
 
       // @ts-expect-error We need to assign the method to the instance.
       this[`is${capitalizedTo}`] = () => this.is(to);

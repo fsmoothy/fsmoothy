@@ -1,3 +1,1 @@
-export const IdentityEvent = Symbol('IdentityEvent');
-
-export const AllStates = Symbol('AllStates');
+export const All = Symbol('AllStates') as any;

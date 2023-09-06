@@ -1,4 +1,4 @@
-export type AllowedNames = string | number | symbol;
+export type AllowedNames = string | number;
 
 export type Callback<
   Context extends object,

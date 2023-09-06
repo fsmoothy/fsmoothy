@@ -1,4 +1,5 @@
 import { StateMachine } from '../fsm';
+import { All } from '../symbols';
 import { t } from '../transition';
 
 import { isStateMachineError } from './../fsm.error';
@@ -218,6 +219,46 @@ describe('StateMachine', () => {
       await stateMachine.transition(Event.resolve);
       await stateMachine.identity();
       expect(stateMachine.current).toBe(State.idle);
+    });
+
+    it('should be able to make transition from All states', async () => {
+      enum State {
+        idle = 'idle',
+        pending = 'pending',
+        resolved = 'resolved',
+        rejected = 'rejected',
+      }
+
+      enum Event {
+        fetch = 'fetch',
+        resolve = 'resolve',
+        reject = 'reject',
+        reset = 'reset',
+      }
+
+      const stateMachine = new StateMachine<State, Event, object>({
+        initial: State.idle,
+        transitions: [
+          t(All, Event.reset, State.idle),
+          t(State.idle, Event.fetch, State.pending),
+          t(State.pending, Event.resolve, State.resolved),
+          t(State.pending, Event.reject, State.rejected),
+        ],
+      });
+
+      await stateMachine.fetch();
+      await stateMachine.reset();
+      expect(stateMachine.isIdle()).toBe(true);
+
+      await stateMachine.fetch();
+      await stateMachine.resolve();
+      await stateMachine.reset();
+      expect(stateMachine.isIdle()).toBe(true);
+
+      await stateMachine.fetch();
+      await stateMachine.reject();
+      await stateMachine.reset();
+      expect(stateMachine.isIdle()).toBe(true);
     });
   });
 
