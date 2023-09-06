@@ -1,13 +1,14 @@
 import { StateMachineError } from './fsm.error';
-import { AllowedEvents, AllowedNames, Callback, ITransition } from './types';
+import { IdentityEvent } from './symbols';
+import { AllowedNames, Callback, ITransition } from './types';
 
-type Subscribers<Event extends AllowedEvents, Context extends object> = {
+type Subscribers<Event extends AllowedNames, Context extends object> = {
   [key in Event]: Array<Callback<Context>>;
 };
 
 export interface IStateMachineParameters<
   State extends AllowedNames | Array<AllowedNames>,
-  Event extends AllowedEvents,
+  Event extends AllowedNames,
   Context extends object = object,
   Transition extends ITransition<State, Event, Context> = ITransition<
     State,
@@ -36,7 +37,7 @@ export interface IStateMachineParameters<
   subscribers?: Subscribers<Event, Context>;
 }
 
-type StateMachineEvents<Event extends AllowedEvents> = {
+type StateMachineEvents<Event extends AllowedNames> = {
   /**
    * @param arguments_ - Arguments to pass to lifecycle hooks.
    */
@@ -49,7 +50,7 @@ type CapitalizeString<S> = S extends symbol
   ? Capitalize<S>
   : S;
 
-type StateMachineTransitionCheckers<Event extends AllowedEvents> = {
+type StateMachineTransitionCheckers<Event extends AllowedNames> = {
   /**
    * @param arguments_ - Arguments to pass to guard.
    */
@@ -62,7 +63,7 @@ type StateMachineCheckers<State extends AllowedNames> = {
 
 export type IStateMachine<
   State extends AllowedNames,
-  Event extends AllowedEvents,
+  Event extends AllowedNames,
   Context extends object,
 > = _StateMachine<State, Event, Context> &
   StateMachineEvents<Event> &
@@ -72,7 +73,7 @@ export type IStateMachine<
 export type StateMachineConstructor = {
   new <
     State extends AllowedNames,
-    Event extends AllowedEvents,
+    Event extends AllowedNames,
     Context extends object,
   >(
     parameters: IStateMachineParameters<State, Event, Context>,
@@ -87,11 +88,21 @@ function capitalize(parameter: unknown) {
   return parameter.charAt(0).toUpperCase() + parameter.slice(1);
 }
 
-export const IdentityEvent = Symbol('IdentityEvent');
+function identityTransition<
+  State extends AllowedNames,
+  Event extends AllowedNames,
+  Context extends object,
+>(state: State): ITransition<State, Event, Context> {
+  return {
+    from: state,
+    event: IdentityEvent,
+    to: state,
+  } as ITransition<State, Event, Context>;
+}
 
 export class _StateMachine<
   State extends AllowedNames,
-  Event extends AllowedEvents,
+  Event extends AllowedNames,
   Context extends object,
 > {
   protected _current: ITransition<State, Event, Context>;
@@ -100,7 +111,7 @@ export class _StateMachine<
   /**
    * Map of allowed events by from-state.
    */
-  protected _allowedEvents: Map<State, Set<Event>>;
+  protected _AllowedNames: Map<State, Set<Event>>;
   /**
    * Map of transitions by event and from-state.
    */
@@ -122,11 +133,8 @@ export class _StateMachine<
   constructor(parameters: IStateMachineParameters<State, Event, Context>) {
     this._initialParameters = parameters;
     this._id = parameters.id ?? 'fsm';
-    this._current = {
-      to: parameters.initial,
-      from: parameters.initial,
-      event: IdentityEvent as Event,
-    };
+    this._current = identityTransition(parameters.initial);
+
     this._ctx =
       typeof parameters.ctx === 'function'
         ? parameters.ctx(parameters)
@@ -134,7 +142,7 @@ export class _StateMachine<
 
     this.checkDuplicateTransitions(parameters.transitions);
 
-    this._allowedEvents = this.prepareEvents(parameters.transitions);
+    this._AllowedNames = this.prepareEvents(parameters.transitions);
     this._transitions = this.prepareTransitions(parameters.transitions);
     this._subscribers = this.prepareSubscribers(parameters.subscribers);
 
@@ -157,13 +165,27 @@ export class _StateMachine<
   }
 
   /**
+   * All events in the state machine.
+   */
+  get events(): Array<Event> {
+    return [...this._transitions.keys()];
+  }
+
+  /**
+   * All states in the state machine.
+   */
+  get states(): Array<State> {
+    return [...this._AllowedNames.keys()];
+  }
+
+  /**
    * Returns new state machine with added transition with the same context, initial state and subscribers.
    * @param transition - Transition to add.
    * @returns New state machine.
    */
   public addTransition<
     NewState extends AllowedNames,
-    NewEvent extends AllowedEvents,
+    NewEvent extends AllowedNames,
   >(transition: ITransition<NewState, NewEvent, Context>) {
     const parameters = {
       ...this._initialParameters,
@@ -199,8 +221,8 @@ export class _StateMachine<
     event: Event,
     ...arguments_: Arguments
   ) {
-    const allowedEvents = this._allowedEvents.get(this.current);
-    if (!allowedEvents?.has(event)) {
+    const AllowedNames = this._AllowedNames.get(this.current);
+    if (!AllowedNames?.has(event)) {
       return false;
     }
 
@@ -260,9 +282,9 @@ export class _StateMachine<
       if (!(await this.can(event, ...arguments_))) {
         reject(
           new StateMachineError(
-            `Event ${String(event)} is not allowed in state ${
-              this.current
-            } of ${this._id}`,
+            `Event ${String(event)} is not allowed in state ${String(
+              this.current,
+            )} of ${this._id}`,
           ),
         );
         return;
@@ -281,6 +303,12 @@ export class _StateMachine<
         );
       }, 0);
     });
+  }
+
+  public async identity<Arguments extends Array<unknown> = Array<unknown>>(
+    ...arguments_: Arguments
+  ) {
+    return await this.transition(IdentityEvent as Event, ...arguments_);
   }
 
   private prepareSubscribers(subscribers?: Subscribers<Event, Context>) {
@@ -315,7 +343,7 @@ export class _StateMachine<
 
       for (const from of froms) {
         if (!accumulator.has(from)) {
-          accumulator.set(from, new Set<Event>());
+          accumulator.set(from, new Set<Event>([IdentityEvent as Event]));
         }
 
         accumulator.get(from)?.add(event);
@@ -328,7 +356,7 @@ export class _StateMachine<
   private prepareTransitions(
     transitions: Array<ITransition<State, Event, Context>>,
   ) {
-    return transitions.reduce((accumulator, transition) => {
+    const _transitionMap = transitions.reduce((accumulator, transition) => {
       const { from, event } = transition;
       const froms = Array.isArray(from) ? from : [from];
 
@@ -345,6 +373,23 @@ export class _StateMachine<
 
       return accumulator;
     }, new Map<Event, Map<State, ITransition<State, Event, Context>>>());
+
+    _transitionMap.set(
+      IdentityEvent as Event,
+      new Map<State, ITransition<State, Event, Context>>(),
+    );
+
+    for (const { from } of transitions) {
+      const froms = Array.isArray(from) ? from : [from];
+
+      for (const from of froms) {
+        _transitionMap
+          .get(IdentityEvent as Event)
+          ?.set(from, identityTransition(from));
+      }
+    }
+
+    return _transitionMap;
   }
 
   private populateEventMethods(
@@ -381,7 +426,9 @@ export class _StateMachine<
 
         if (transitionsMap.get(from)?.has(event)) {
           console.warn(
-            `Duplicate transition from ${from} on event ${String(event)}`,
+            `Duplicate transition from ${String(from)} on event ${String(
+              event,
+            )}`,
           );
         }
 
@@ -449,13 +496,17 @@ export class _StateMachine<
 
       if (!(error instanceof Error)) {
         throw new StateMachineError(
-          `Exception caught in ${this._id} on transition from ${from} to ${to}: ${error}`,
+          `Exception caught in ${this._id} on transition from ${String(
+            from,
+          )} to ${String(to)}: ${error}`,
           transition,
         );
       }
 
       throw new StateMachineError(
-        `Exception caught in ${this._id} on transition from ${from} to ${to}: ${error.message}`,
+        `Exception caught in ${this._id} on transition from ${String(
+          from,
+        )} to ${String(to)}: ${error.message}`,
         transition,
       );
     }
@@ -493,7 +544,7 @@ export class _StateMachine<
  */
 export const StateMachine = function <
   const State extends AllowedNames,
-  const Event extends AllowedEvents,
+  const Event extends AllowedNames,
   Context extends object,
 >(
   this: _StateMachine<State, Event, Context>,
