@@ -1,4 +1,5 @@
 import { StateMachine } from '../fsm';
+import { nested } from '../nested';
 import { All } from '../symbols';
 import { t } from '../transition';
 
@@ -7,10 +8,15 @@ import { isStateMachineError } from './../fsm.error';
 enum State {
   idle = 'idle',
   pending = 'pending',
+  resolved = 'resolved',
+  rejected = 'rejected',
 }
+
 enum Event {
   fetch = 'fetch',
   resolve = 'resolve',
+  reject = 'reject',
+  reset = 'reset',
 }
 
 const createFetchStateMachine = () => {
@@ -59,11 +65,9 @@ describe('StateMachine', () => {
         handlerContext = this;
       });
 
-      const context = { foo: 'bar' };
-
       const stateMachine = new StateMachine({
         initial: State.idle,
-        ctx: context,
+        ctx: () => ({ foo: 'bar' }),
         transitions: [
           {
             from: State.idle,
@@ -79,7 +83,10 @@ describe('StateMachine', () => {
 
       await stateMachine.transition(Event.fetch, 'test');
       expect(handler).toHaveBeenCalledTimes(2);
-      expect(handler).toHaveBeenCalledWith(context, 'test');
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({ foo: 'bar' }),
+        'test',
+      );
       expect(handlerContext).toBe(stateMachine);
 
       await stateMachine.resolve();
@@ -95,25 +102,11 @@ describe('StateMachine', () => {
     });
 
     it('should be able to add transition after initialization', async () => {
-      enum State {
-        idle = 'idle',
-        pending = 'pending',
-        resolved = 'resolved',
-        rejected = 'rejected',
-      }
-
-      enum Event {
-        fetch = 'fetch',
-        resolve = 'resolve',
-        reject = 'reject',
-        reset = 'reset',
-      }
-
       const callback = jest.fn();
 
       const stateMachine = new StateMachine({
         initial: State.idle,
-        ctx: { n: 1 },
+        ctx: () => ({ n: 1 }),
         transitions: [
           t(
             State.idle,
@@ -222,20 +215,6 @@ describe('StateMachine', () => {
     });
 
     it('should be able to make transition from All states', async () => {
-      enum State {
-        idle = 'idle',
-        pending = 'pending',
-        resolved = 'resolved',
-        rejected = 'rejected',
-      }
-
-      enum Event {
-        fetch = 'fetch',
-        resolve = 'resolve',
-        reject = 'reject',
-        reset = 'reset',
-      }
-
       const stateMachine = new StateMachine<State, Event, object>({
         initial: State.idle,
         transitions: [
@@ -357,7 +336,7 @@ describe('StateMachine', () => {
 
       const stateMachine = new StateMachine({
         initial: State.idle,
-        ctx: { foo: 'bar' },
+        ctx: () => ({ foo: 'bar' }),
         transitions: [t(State.idle, Event.fetch, State.pending)],
         subscribers: {
           [Event.fetch]: [callback],
@@ -368,6 +347,246 @@ describe('StateMachine', () => {
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith(stateMachine.context);
       expect(handlerContext).toBe(stateMachine);
+    });
+  });
+
+  describe('nested', () => {
+    enum NestedStates {
+      walk = 'walk',
+      dontWalk = 'dontWalk',
+    }
+
+    enum NestedEvents {
+      toggle = 'toggle',
+    }
+
+    enum State {
+      green = 'green',
+      yellow = 'yellow',
+      red = 'red',
+    }
+
+    enum Event {
+      next = 'next',
+    }
+
+    it('should be able to define nested FSM', async () => {
+      const fsm = new StateMachine<
+        State | NestedStates,
+        Event | NestedEvents,
+        { test: string }
+      >({
+        id: 'fsm',
+        initial: State.green,
+        ctx: () => ({ test: 'bar' }),
+        transitions: [
+          t(State.green, Event.next, State.yellow),
+          t(State.yellow, Event.next, State.red),
+          t(State.red, Event.next, State.green),
+        ],
+        states: {
+          [State.red]: nested({
+            id: 'nested-fsm',
+            initial: NestedStates.dontWalk,
+            transitions: [
+              t(NestedStates.dontWalk, NestedEvents.toggle, NestedStates.walk),
+            ],
+          }),
+        },
+      });
+
+      await fsm.next();
+      await fsm.next();
+      expect(fsm.is(State.red)).toBe(true);
+      await fsm.toggle();
+
+      expect(fsm.isRed()).toBe(true);
+      expect(fsm.isWalk()).toBe(true);
+      await fsm.next();
+
+      expect(fsm.is(State.green)).toBe(true);
+      expect(fsm.isWalk()).toBe(false);
+    });
+
+    it('should change context of nested FSM', async () => {
+      const fsm = new StateMachine<
+        State | NestedStates,
+        Event | NestedEvents,
+        { test: string }
+      >({
+        id: 'fsm',
+        initial: State.green,
+        ctx: () => ({ test: 'bar' }),
+        transitions: [
+          t(State.green, Event.next, State.yellow),
+          t(State.yellow, Event.next, State.red),
+          t(State.red, Event.next, State.green),
+        ],
+        states: {
+          [State.red]: nested({
+            id: 'nested-fsm',
+            initial: NestedStates.dontWalk,
+            transitions: [
+              t(NestedStates.dontWalk, NestedEvents.toggle, NestedStates.walk),
+            ],
+            ctx: () => ({ test: 'foo' }),
+            subscribers: {
+              [NestedEvents.toggle]: [
+                (context) => {
+                  context.test = 'foo';
+                },
+              ],
+            },
+          }),
+        },
+      });
+
+      await fsm.next();
+      await fsm.next();
+      expect(fsm.is(State.red)).toBe(true);
+
+      await fsm.toggle();
+      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.child.is(NestedStates.walk)).toBe(true);
+      expect(fsm.child.context).toEqual({ test: 'foo' });
+
+      await fsm.next();
+      expect(fsm.is(State.green)).toBe(true);
+      expect(fsm.child.is(NestedStates.walk)).toBe(false);
+      expect(fsm.child.context).toEqual({ test: 'bar' });
+
+      await fsm.next();
+      await fsm.next();
+      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.child.context).toEqual({ test: 'foo' });
+    });
+
+    it('should not save nested FSM context if history is none', async () => {
+      const fsm = new StateMachine<
+        State | NestedStates,
+        Event | NestedEvents,
+        { test: string }
+      >({
+        id: 'fsm',
+        initial: State.green,
+        ctx: () => ({ test: 'bar' }),
+        transitions: [
+          t(State.green, Event.next, State.yellow),
+          t(State.yellow, Event.next, State.red),
+          t(State.red, Event.next, State.green),
+        ],
+        states: {
+          [State.red]: nested(
+            {
+              id: 'nested-fsm',
+              initial: NestedStates.dontWalk,
+              transitions: [
+                t(
+                  NestedStates.dontWalk,
+                  NestedEvents.toggle,
+                  NestedStates.walk,
+                ),
+              ],
+              ctx: () => ({ test: 'bar' }),
+              subscribers: {
+                [NestedEvents.toggle]: [
+                  (context) => {
+                    context.test = 'foo';
+                  },
+                ],
+              },
+            },
+            { history: 'none' },
+          ),
+        },
+      });
+
+      await fsm.next();
+      await fsm.next();
+      expect(fsm.is(State.red)).toBe(true);
+
+      await fsm.toggle();
+      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.child.is(NestedStates.walk)).toBe(true);
+      expect(fsm.child.context).toEqual({ test: 'foo' });
+
+      await fsm.next();
+      expect(fsm.is(State.green)).toBe(true);
+      expect(fsm.child.is(NestedStates.walk)).toBe(false);
+      expect(fsm.child.context).toEqual({ test: 'bar' });
+
+      await fsm.next();
+      await fsm.next();
+      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.child.context).toEqual({ test: 'bar' });
+    });
+
+    it('should trigger subscribers on nested effects and transitions', async () => {
+      const callback = jest.fn();
+
+      let handlerContext: unknown;
+
+      const nestedCallback = jest.fn().mockImplementation(function (
+        this: unknown,
+      ) {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
+        handlerContext = this;
+      });
+
+      const fsm = new StateMachine<
+        State | NestedStates,
+        Event | NestedEvents,
+        { test: string }
+      >({
+        id: 'fsm',
+        initial: State.green,
+        ctx: () => ({ test: 'bar' }),
+        transitions: [
+          t(State.green, Event.next, State.yellow),
+          t(State.yellow, Event.next, State.red),
+          t(State.red, Event.next, State.green),
+        ],
+        states: {
+          [State.red]: nested({
+            id: 'nested-fsm',
+            initial: NestedStates.dontWalk,
+            transitions: [
+              t(NestedStates.dontWalk, NestedEvents.toggle, NestedStates.walk),
+            ],
+            ctx: () => ({ test: 'foo' }),
+            subscribers: {
+              [NestedEvents.toggle]: [nestedCallback],
+            },
+          }),
+        },
+        subscribers: {
+          [Event.next]: [callback],
+        },
+      });
+
+      await fsm.next();
+      await fsm.next();
+      expect(fsm.is(State.red)).toBe(true);
+
+      await fsm.toggle();
+      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.child.is(NestedStates.walk)).toBe(true);
+      expect(fsm.child.context).toEqual({ test: 'foo' });
+
+      await fsm.next();
+      expect(fsm.is(State.green)).toBe(true);
+      expect(fsm.child.is(NestedStates.walk)).toBe(false);
+      expect(fsm.child.context).toEqual({ test: 'bar' });
+
+      await fsm.next();
+      await fsm.next();
+      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.child.context).toEqual({ test: 'foo' });
+
+      expect(callback).toHaveBeenCalledTimes(5);
+      expect(nestedCallback).toHaveBeenCalledTimes(1);
+      expect(nestedCallback).toHaveBeenCalledWith(fsm.child.context);
+      expect(handlerContext).toBe(fsm.child);
     });
   });
 });

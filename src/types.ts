@@ -24,3 +24,7 @@ export interface ITransition<
   onLeave?: Callback<Context>;
   guard?: Guard<Context>;
 }
+
+export type Subscribers<Event extends AllowedNames, Context extends object> = {
+  [key in Event]?: Array<Callback<Context>>;
+};

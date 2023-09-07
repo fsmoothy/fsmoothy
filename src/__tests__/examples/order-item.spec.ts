@@ -27,9 +27,9 @@ const orderItemFSMParameters: IStateMachineParameters<
 > = {
   id: 'orderItemsStatus',
   initial: OrderItemState.draft,
-  ctx: {
+  ctx: () => ({
     place: 'My warehouse',
-  },
+  }),
   transitions: [
     t(OrderItemState.draft, OrderItemEvent.create, OrderItemState.assembly),
     t(

@@ -270,6 +270,63 @@ const orderItemFSM = new StateMachine({
 });
 ```
 
+### Nested state machines
+
+`fsmoothy` supports nested state machines. It's the way to deal with the [state explosion problem](https://statecharts.dev/state-machine-state-explosion.html) of traditional finite state machines.
+
+A crosswalk light is an example of a nested state machine. It displays a stop signal ✋ when the stoplight is either **Yellow** or **Green**., and switches to a walk signal 🚶‍♀️ when the stoplight turns **Red**. The crosswalk light operates as a nested state machine within the parent stoplight system.
+
+```typescript
+enum NestedStates {
+  walk = 'walk',
+  dontWalk = 'dontWalk',
+}
+
+enum NestedEvents {
+  toggle = 'toggle',
+}
+
+enum State {
+  green = 'green',
+  yellow = 'yellow',
+  red = 'red',
+}
+
+enum Event {
+  next = 'next',
+}
+
+const fsm = new StateMachine<
+  State | NestedStates,
+  Event | NestedEvents,
+  { test: string }
+>({
+  id: 'stoplight-fsm',
+  initial: State.green,
+  ctx: () => ({ test: 'bar' }),
+  transitions: [
+    t(State.green, Event.next, State.yellow),
+    t(State.yellow, Event.next, State.red),
+    t(State.red, Event.next, State.green),
+  ],
+  states: {
+    [State.red]: nested({
+      id: 'walk-fsm',
+      initial: NestedStates.dontWalk,
+      transitions: [
+        t(NestedStates.dontWalk, NestedEvents.toggle, NestedStates.walk),
+      ],
+    }),
+  },
+});
+
+await fsm.next();
+await fsm.next(); // fsm.current === State.red
+await fsm.toggle(); // fsm.current === NestedStates.walk
+await fsm.next(); // fsm.current === State.green
+fsm.is(NestedStates.walk); // false
+```
+
 ### Lifecycle
 
 The state machine has the following lifecycle methods in the order of execution:
