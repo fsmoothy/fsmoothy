@@ -95,27 +95,27 @@ const stateMachineParameters: IStateMachineParameters<
       },
     }),
   ],
-};
+  subscribers: {
+    [ClockEvent.Tick]: [
+      async function (context, minutes: number = 1) {
+        const _minutes = context.time.minutes + minutes;
+        const _hours = context.time.hours + Math.floor(_minutes / 60);
 
-const createAlarmClock = (): Clock => {
-  return new StateMachine(stateMachineParameters)
-    .on(ClockEvent.Tick, async function (context, minutes: number = 1) {
-      context.time.minutes = (context.time.minutes + minutes) % 60;
-      context.time.hours =
-        context.time.minutes === 0
-          ? (context.time.hours + 1) % 24
-          : context.time.hours;
-    })
-    .on(ClockEvent.Tick, async function (this: Clock) {
-      if (await this.canActivateAlarm()) {
-        await this.activateAlarm();
-      }
-    });
+        context.time.minutes = _minutes % 60;
+        context.time.hours = _hours % 24;
+      },
+      async function (this: Clock) {
+        if (await this.canActivateAlarm()) {
+          await this.activateAlarm();
+        }
+      },
+    ],
+  },
 };
 
 describe('Alarm clock', () => {
   it('should have default values', () => {
-    const clock = createAlarmClock();
+    const clock = new StateMachine(stateMachineParameters);
 
     expect(clock.context.time.hours).toBe(12);
     expect(clock.context.time.minutes).toBe(0);
@@ -124,7 +124,7 @@ describe('Alarm clock', () => {
   });
 
   it('should change state when click to mode', async () => {
-    const clock = createAlarmClock();
+    const clock = new StateMachine(stateMachineParameters);
     expect(clock.context.isAlarmOn).toBe(false);
     expect(clock.current).toBe(ClockState.Clock);
 
@@ -154,7 +154,7 @@ describe('Alarm clock', () => {
   });
 
   it('should change hours and minutes', async () => {
-    const clock = createAlarmClock();
+    const clock = new StateMachine(stateMachineParameters);
 
     await clock.clickH();
     expect(clock.context.time.hours).toBe(13);
@@ -196,11 +196,9 @@ describe('Alarm clock', () => {
   });
 
   it('should not start bell if alarm off', async () => {
-    const clock = createAlarmClock();
+    const clock = new StateMachine(stateMachineParameters);
 
-    for (let index = 0; index < 18 * 60; index += 1) {
-      await clock.tick();
-    }
+    await clock.tick(18 * 60);
 
     expect(await clock.canActivateAlarm()).toBe(false);
     expect(clock.current).toBe(ClockState.Clock);
@@ -212,13 +210,11 @@ describe('Alarm clock', () => {
   });
 
   it('should start bell if alarm on', async () => {
-    const clock = createAlarmClock();
+    const clock = new StateMachine(stateMachineParameters);
 
     await clock.longClickMode();
 
-    for (let index = 0; index < 18 * 60; index += 1) {
-      await clock.tick();
-    }
+    await clock.tick(18 * 60);
 
     expect(clock.current).toBe(ClockState.Bell);
 
@@ -232,14 +228,12 @@ describe('Alarm clock', () => {
   });
 
   it('should start bell if state is Alarm', async () => {
-    const clock = createAlarmClock();
+    const clock = new StateMachine(stateMachineParameters);
     await clock.longClickMode();
     await clock.clickMode();
     expect(clock.current).toBe(ClockState.Alarm);
 
-    for (let index = 0; index < 18 * 60; index += 1) {
-      await clock.tick();
-    }
+    await clock.tick(18 * 60);
 
     expect(clock.current).toBe(ClockState.Bell);
 
@@ -248,12 +242,10 @@ describe('Alarm clock', () => {
   });
 
   it('should increment minutes after Alarm', async () => {
-    const clock = createAlarmClock();
+    const clock = new StateMachine(stateMachineParameters);
     await clock.longClickMode();
 
-    for (let index = 0; index < 18 * 60; index += 1) {
-      await clock.tick();
-    }
+    await clock.tick(18 * 60);
 
     expect(clock.current).toBe(ClockState.Bell);
 
