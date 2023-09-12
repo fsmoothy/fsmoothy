@@ -348,6 +348,34 @@ describe('StateMachine', () => {
       expect(callback).toHaveBeenCalledWith(stateMachine.context);
       expect(handlerContext).toBe(stateMachine);
     });
+
+    it('should be able to subscribe to All events', async () => {
+      const callback = jest.fn();
+      const callback2 = jest.fn();
+
+      const stateMachine = new StateMachine({
+        initial: State.idle,
+        transitions: [t(State.idle, Event.fetch, State.idle)],
+        subscribers: {
+          [All]: [callback],
+        },
+      });
+
+      await stateMachine.fetch();
+      expect(callback).toHaveBeenCalledTimes(1);
+
+      stateMachine.on(callback2);
+
+      await stateMachine.fetch();
+      expect(callback).toHaveBeenCalledTimes(2);
+      expect(callback2).toHaveBeenCalledTimes(1);
+
+      stateMachine.off(callback);
+
+      await stateMachine.fetch();
+      expect(callback).toHaveBeenCalledTimes(2);
+      expect(callback2).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('nested', () => {

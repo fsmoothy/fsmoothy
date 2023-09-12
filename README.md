@@ -239,6 +239,8 @@ await orderItemFSM.create();
 orderItemFSM.off(OrderItemEvent.create, subscriber);
 ```
 
+### Subscribers on initialization
+
 Also you're able to subscribe to transaction on initialization.
 
 ```typescript
@@ -269,6 +271,19 @@ const orderItemFSM = new StateMachine({
   }
 });
 ```
+
+### Subscribers to all transitions
+
+You can subscribe to all transitions using the `on` method without event name.
+
+```typescript
+const subscriber = (state: OrderItemState) => {
+  console.log(state);
+};
+orderItemFSM.on(subscriber);
+```
+
+Subscriber will be called on all transitions after subscribers with event name.
 
 ### Nested state machines
 

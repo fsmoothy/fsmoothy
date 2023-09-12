@@ -280,29 +280,60 @@ export class _StateMachine<
    *
    * @param event - Event to subscribe to.
    * @param callback - Callback to execute.
+   *
+   * @overload
+   * Subscribe to all events.
+   * @param callback - Callback to execute.
    */
-  public on(event: Event, callback: Callback<Context>) {
+  public on(event: Event, callback: Callback<Context>): this;
+  public on(callback: Callback<Context>): this;
+  public on(
+    eventOrCallback: Event | Callback<Context>,
+    callback?: Callback<Context>,
+  ) {
+    if (typeof eventOrCallback === 'function') {
+      return this.on(All, eventOrCallback);
+    }
+
+    const event = eventOrCallback;
+
     if (!this._subscribers.has(event)) {
       this._subscribers.set(event, new Map());
     }
 
     const callbacks = this._subscribers.get(event);
-    callbacks?.set(callback, callback.bind(this));
+    callbacks?.set(callback!, callback!.bind(this));
 
     return this;
   }
 
   /**
    * Unsubscribe from event.
+   * @param event - Event to unsubscribe from.
+   * @param callback - Callback to unsubscribe.
+   *
+   * @overload
+   * Unsubscribe from `All` event.
+   * @param callback - Callback to unsubscribe.
    */
-  public off(event: Event, callback: Callback<Context>) {
+  public off(event: Event, callback: Callback<Context>): this;
+  public off(callback: Callback<Context>): this;
+  public off(
+    eventOrCallback: Event | Callback<Context>,
+    callback?: Callback<Context>,
+  ) {
+    if (typeof eventOrCallback === 'function') {
+      return this.off(All, eventOrCallback);
+    }
+
+    const event = eventOrCallback;
     if (!this._subscribers.has(event)) {
       console.warn(`Event ${String(event)} is not subscribed in ${this._id}`);
       return;
     }
 
     const callbacks = this._subscribers.get(event);
-    callbacks?.delete(callback);
+    callbacks?.delete(callback!);
 
     return this;
   }
@@ -366,6 +397,15 @@ export class _StateMachine<
 
     if (!subscribers) {
       return _subscribers;
+    }
+
+    if (All in subscribers) {
+      for (const callback of subscribers[
+        All as keyof typeof subscribers
+      ] as Array<Callback<Context>>) {
+        _subscribers.set(All, new Map());
+        _subscribers.get(All)?.set(callback, callback.bind(this));
+      }
     }
 
     for (const [event, callbacks] of Object.entries(subscribers)) {
@@ -577,6 +617,7 @@ export class _StateMachine<
     const { from, to, onEnter, onExit, event } = transition ?? {};
 
     const subscribers = this._subscribers.get(event);
+    const allSubscribers = this._subscribers.get(All);
 
     try {
       await this._last.onLeave?.(this._ctx, ...arguments_);
@@ -584,6 +625,10 @@ export class _StateMachine<
       await this.makeTransition(transition);
 
       for (const subscriber of subscribers?.values() ?? []) {
+        await subscriber(this._ctx, ...arguments_);
+      }
+
+      for (const subscriber of allSubscribers?.values() ?? []) {
         await subscriber(this._ctx, ...arguments_);
       }
 

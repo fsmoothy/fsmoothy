@@ -18,7 +18,7 @@ module.exports = {
       },
     },
   },
-  plugins: ['import', 'lodash'],
+  plugins: ['import'],
   extends: [
     'plugin:node/recommended',
     'plugin:prettier/recommended',
@@ -45,7 +45,6 @@ module.exports = {
     'no-implicit-coercion': ERROR,
     'no-else-return': ERROR,
     'no-duplicate-imports': [ERROR, { includeExports: true }],
-    'lodash/import-scope': OFF,
     'import/first': ERROR,
     'import/no-mutable-exports': ERROR,
     'import/no-self-import': ERROR,

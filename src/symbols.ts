@@ -1,1 +1,1 @@
-export const All = Symbol('AllStates') as any;
+export const All = Symbol('All') as any;
