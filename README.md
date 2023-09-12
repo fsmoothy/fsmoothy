@@ -186,8 +186,6 @@ const newOrderItemFSM = orderItemFSM.addTransition([
 ]);
 ```
 
-It returns a new instance of the state machine with the added transition. Context and current state will be copied to the new instance.
-
 ### Current state
 
 You can get the current state of the state machine using the `current` property.

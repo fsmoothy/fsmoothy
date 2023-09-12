@@ -113,31 +113,31 @@ export class _StateMachine<
   const Event extends AllowedNames,
   Context extends object,
 > {
-  protected _last: ITransition<State, Event, Context>;
-  protected _id: string;
-  protected _ctx: Context;
+  private _last: ITransition<State, Event, Context>;
+  private _id: string;
+  private _ctx: Context;
 
   /**
    * For nested state machines.
    */
-  protected _activeChild: _NestedState<
+  private _activeChild: _NestedState<
     _StateMachine<AllowedNames, AllowedNames, object>
   > | null = null;
-  protected _states: States<State>;
+  private _states: States<State>;
 
   /**
    * Map of allowed events by from-state.
    */
-  protected _allowedNames: Map<State, Set<Event>>;
+  private _allowedNames: Map<State, Set<Event>>;
   /**
    * Map of transitions by event and from-state.
    */
-  protected _transitions: Map<
+  private _transitions: Map<
     Event,
     Map<State, ITransition<State, Event, Context>>
   >;
 
-  protected _subscribers = new Map<
+  private _subscribers = new Map<
     Event,
     /**
      * Map of original callbacks by bound callbacks.
@@ -145,7 +145,7 @@ export class _StateMachine<
     Map<Callback<Context>, Callback<Context>>
   >();
 
-  protected _initialParameters: IStateMachineParameters<State, Event, Context>;
+  private _initialParameters: IStateMachineParameters<State, Event, Context>;
 
   constructor(parameters: IStateMachineParameters<State, Event, Context>) {
     this._initialParameters = parameters;
@@ -205,7 +205,7 @@ export class _StateMachine<
   }
 
   /**
-   * Returns new state machine with added transition with the same context, initial state and subscribers.
+   * Add transition to the state machine.
    * @param transition - Transition to add.
    * @returns New state machine.
    */
@@ -213,23 +213,30 @@ export class _StateMachine<
     NewState extends AllowedNames,
     NewEvent extends AllowedNames,
   >(transition: ITransition<NewState, NewEvent, Context>) {
-    const parameters = {
-      ...this._initialParameters,
-      initial: this.current,
-      transitions: [...this._initialParameters.transitions, transition],
-    } as IStateMachineParameters<State | NewState, Event | NewEvent, Context>;
+    const { from, event, to } = transition as any;
 
-    const _stateMachine = new StateMachine(parameters);
+    const states = Array.isArray(from) ? [...from, to] : [from, to];
 
-    // we need to copy subscribers to the new state machine
-    _stateMachine._subscribers = new Map();
-    for (const [event, callbacks] of this._subscribers.entries()) {
-      _stateMachine._subscribers.set(event, callbacks);
+    this.addEventMethods(event);
+    this.addEvent(transition as any);
+
+    if (!this._transitions.has(event)) {
+      this._transitions.set(event, new Map());
     }
 
-    _stateMachine._ctx = this._ctx;
+    for (const state of states) {
+      this.addIsChecker(state);
 
-    return _stateMachine;
+      this._transitions
+        .get(event)
+        ?.set(state, this.bindToCallbacks(transition as any));
+    }
+
+    return this as unknown as IStateMachine<
+      State | NewState,
+      Event | NewEvent,
+      Context
+    >;
   }
 
   /**
@@ -389,7 +396,7 @@ export class _StateMachine<
     return await this.transition(IdentityEvent as Event, ...arguments_);
   }
 
-  protected prepareSubscribers(subscribers?: Subscribers<Event, Context>) {
+  private prepareSubscribers(subscribers?: Subscribers<Event, Context>) {
     const _subscribers = new Map<
       Event,
       Map<Callback<Context>, Callback<Context>>
@@ -421,7 +428,20 @@ export class _StateMachine<
     return _subscribers;
   }
 
-  protected prepareEvents(
+  private addEvent(transition: ITransition<State, Event, Context>) {
+    const { from, event, to } = transition;
+    const froms = Array.isArray(from) ? from : [from];
+
+    for (const from of [...froms, to]) {
+      if (!this._allowedNames.has(from)) {
+        this._allowedNames.set(from, new Set<Event>([IdentityEvent as Event]));
+      }
+
+      this._allowedNames.get(from)?.add(event);
+    }
+  }
+
+  private prepareEvents(
     transitions: Array<ITransition<State, Event, Context>>,
   ) {
     return transitions.reduce((accumulator, transition) => {
@@ -440,7 +460,7 @@ export class _StateMachine<
     }, new Map<State, Set<Event>>());
   }
 
-  protected prepareTransitions(
+  private prepareTransitions(
     transitions: Array<ITransition<State, Event, Context>>,
   ) {
     const _transitionMap = transitions.reduce((accumulator, transition) => {
@@ -482,7 +502,7 @@ export class _StateMachine<
   /**
    * Adds useful warnings on fsm initialization.
    */
-  protected checkDuplicateTransitions(
+  private checkDuplicateTransitions(
     transitions: Array<ITransition<State, Event, Context>>,
   ) {
     const transitionsMap = new Map<
@@ -512,7 +532,23 @@ export class _StateMachine<
     }
   }
 
-  protected populateEventMethods(
+  /**
+   * Adds event methods to the state machine instance.
+   */
+  private addEventMethods(event: Event) {
+    const capitalizedEvent = capitalize(event);
+
+    // @ts-expect-error We need to assign the method to the instance.
+    this[event] = async (...arguments_: [unknown, ...Array<unknown>]) => {
+      await this.transition(event, ...arguments_);
+    };
+
+    // @ts-expect-error We need to assign the method to the instance.
+    this[`can${capitalizedEvent}`] = (...arguments_) =>
+      this.can(event, ...arguments_);
+  }
+
+  private populateEventMethods(
     parameters: IStateMachineParameters<State, Event, Context>,
   ) {
     const nestedEvents = Object.values(parameters.states ?? {}).flatMap(
@@ -530,20 +566,18 @@ export class _StateMachine<
         continue;
       }
 
-      const capitalizedEvent = capitalize(event);
-
-      // @ts-expect-error We need to assign the method to the instance.
-      this[event] = async (...arguments_: [unknown, ...Array<unknown>]) => {
-        await this.transition(event, ...arguments_);
-      };
-
-      // @ts-expect-error We need to assign the method to the instance.
-      this[`can${capitalizedEvent}`] = (...arguments_) =>
-        this.can(event, ...arguments_);
+      this.addEventMethods(event);
     }
   }
 
-  protected populateCheckers(
+  private addIsChecker(state: State) {
+    const capitalized = capitalize(state);
+
+    // @ts-expect-error We need to assign the method to the instance.
+    this[`is${capitalized}`] = () => this.is(state);
+  }
+
+  private populateCheckers(
     parameters: IStateMachineParameters<State, Event, Context>,
   ) {
     const nestedStates = Object.values(parameters.states ?? {}).flatMap(
@@ -563,10 +597,7 @@ export class _StateMachine<
         continue;
       }
 
-      const capitalized = capitalize(state);
-
-      // @ts-expect-error We need to assign the method to the instance.
-      this[`is${capitalized}`] = () => this.is(state);
+      this.addIsChecker(state);
     }
   }
 
@@ -574,7 +605,7 @@ export class _StateMachine<
    * This method binds the callbacks of the transition to the state machine instance.
    * It useful in case if we need to access the state machine instance from the callbacks.
    */
-  protected bindToCallbacks(transition: ITransition<State, Event, Context>) {
+  private bindToCallbacks(transition: ITransition<State, Event, Context>) {
     return {
       ...transition,
       onLeave: transition.onLeave?.bind(this),
@@ -584,7 +615,7 @@ export class _StateMachine<
     };
   }
 
-  protected makeTransition(transition: ITransition<State, Event, Context>) {
+  private makeTransition(transition: ITransition<State, Event, Context>) {
     this._last = transition ?? this._last;
 
     if (!(transition.to in this._states)) {
@@ -611,7 +642,7 @@ export class _StateMachine<
     }
   }
 
-  protected async executeTransition<
+  private async executeTransition<
     Arguments extends Array<unknown> = Array<unknown>,
   >(transition: ITransition<State, Event, Context>, ...arguments_: Arguments) {
     const { from, to, onEnter, onExit, event } = transition ?? {};
