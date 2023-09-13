@@ -616,5 +616,43 @@ describe('StateMachine', () => {
       expect(nestedCallback).toHaveBeenCalledWith(fsm.child.context);
       expect(handlerContext).toBe(fsm.child);
     });
+
+    it('should be able to add nested states dynamically', async () => {
+      const fsm = new StateMachine<
+        State | NestedStates,
+        Event | NestedEvents,
+        never
+      >({
+        id: 'fsm',
+        initial: State.green,
+        transitions: [
+          t(State.green, Event.next, State.yellow),
+          t(State.yellow, Event.next, State.red),
+          t(State.red, Event.next, State.green),
+        ],
+      });
+
+      fsm.addNestedMachine(
+        State.red,
+        nested({
+          id: 'nested-fsm',
+          initial: NestedStates.dontWalk,
+          transitions: [
+            t(NestedStates.dontWalk, NestedEvents.toggle, NestedStates.walk),
+          ],
+        }),
+      );
+
+      await fsm.next();
+      await fsm.next();
+      expect(fsm.is(State.red)).toBe(true);
+
+      await fsm.toggle();
+      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.child.is(NestedStates.walk)).toBe(true);
+
+      await fsm.next();
+      expect(fsm.is(State.green)).toBe(true);
+    });
   });
 });

@@ -240,6 +240,30 @@ export class _StateMachine<
   }
 
   /**
+   * Add nested state machine.
+   *
+   * @param state - State to add.
+   * @param nestedState - Nested state machine.
+   */
+  public addNestedMachine(state: State, nestedState: _NestedState<any>) {
+    this._states[state as keyof typeof this._states] = nestedState;
+
+    const nestedEvents = nestedState.machine.events;
+
+    for (const event of nestedEvents) {
+      this.addEventMethods(event);
+    }
+
+    const NestedStates = nestedState.machine.states;
+
+    for (const nestedState of Object.keys(NestedStates)) {
+      this.addIsChecker(nestedState as State);
+    }
+
+    return this;
+  }
+
+  /**
    * Checks if the state machine is in the given state.
    * @param state - State to check.
    */
@@ -360,9 +384,10 @@ export class _StateMachine<
       if (await this._activeChild?.machine?.can(event, ...arguments_)) {
         await this._activeChild?.machine?.transition(event, ...arguments_);
         resolve(this);
+        return;
       }
-      // propagate to parent
 
+      // propagate to parent
       if (!(await this.can(event, ...arguments_))) {
         reject(
           new StateMachineError(
@@ -536,6 +561,10 @@ export class _StateMachine<
    * Adds event methods to the state machine instance.
    */
   private addEventMethods(event: Event) {
+    if (typeof event !== 'string') {
+      return;
+    }
+
     const capitalizedEvent = capitalize(event);
 
     // @ts-expect-error We need to assign the method to the instance.
@@ -571,6 +600,10 @@ export class _StateMachine<
   }
 
   private addIsChecker(state: State) {
+    if (typeof state !== 'string') {
+      return;
+    }
+
     const capitalized = capitalize(state);
 
     // @ts-expect-error We need to assign the method to the instance.

@@ -312,11 +312,10 @@ enum Event {
 const fsm = new StateMachine<
   State | NestedStates,
   Event | NestedEvents,
-  { test: string }
+  never,
 >({
   id: 'stoplight-fsm',
   initial: State.green,
-  ctx: () => ({ test: 'bar' }),
   transitions: [
     t(State.green, Event.next, State.yellow),
     t(State.yellow, Event.next, State.red),
