@@ -1,3 +1,13 @@
+# [1.3.0](https://github.com/fsmoothy/fsmoothy/compare/v1.2.0...v1.3.0) (2023-09-14)
+
+
+### Features
+
+* allow add nested fsm dynamically ([1d1bb40](https://github.com/fsmoothy/fsmoothy/commit/1d1bb406bdc611f9994d0a789727cfe9a6c036e7))
+* allow to use function for define nested state ([8e6c63e](https://github.com/fsmoothy/fsmoothy/commit/8e6c63e7d478bc4f59ded72e1cede0068c0a2ae5))
+* mutate in addTransition method ([a416444](https://github.com/fsmoothy/fsmoothy/commit/a41644469dd4d7a2adf92c83cab3790090fff0f8))
+* subscribe to all transitions ([30a509c](https://github.com/fsmoothy/fsmoothy/commit/30a509cfec3fbc0bac923b621fdee1da5893b0da))
+
 # [1.2.0](https://github.com/fsmoothy/fsmoothy/compare/v1.1.0...v1.2.0) (2023-09-07)
 
 
