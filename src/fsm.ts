@@ -38,7 +38,17 @@ export interface IStateMachineParameters<
   transitions: Transitions;
   id?: string;
   subscribers?: Subscribers<Event, Context>;
-  states?: States<State, NestedState>;
+  states?:
+    | States<State, NestedState>
+    | ((
+        parameters: IStateMachineParameters<
+          State,
+          Event,
+          Context,
+          Transition,
+          Transitions
+        >,
+      ) => States<State, NestedState>);
 }
 
 type StateMachineEvents<Event extends AllowedNames> = {
@@ -151,7 +161,12 @@ export class _StateMachine<
     this._initialParameters = parameters;
     this._id = parameters.id ?? 'fsm';
     this._last = identityTransition(parameters.initial);
-    this._states = parameters.states ?? {};
+
+    if (typeof parameters.states === 'function') {
+      this._states = parameters.states(parameters);
+    } else {
+      this._states = parameters.states ?? {};
+    }
 
     this._ctx = parameters.ctx?.(parameters) ?? ({} as Context);
 
@@ -182,8 +197,8 @@ export class _StateMachine<
   /**
    * Child state machine.
    */
-  get child(): _StateMachine<State, Event, Context> {
-    return (this._activeChild?.machine ?? this) as _StateMachine<
+  get child(): IStateMachine<State, Event, Context> {
+    return (this._activeChild?.machine ?? this) as unknown as IStateMachine<
       State,
       Event,
       Context
@@ -379,40 +394,31 @@ export class _StateMachine<
     event: Event,
     ...arguments_: Arguments
   ): Promise<this> {
-    return await new Promise<this>(async (resolve, reject) => {
-      // check nested state machine
-      if (await this._activeChild?.machine?.can(event, ...arguments_)) {
-        await this._activeChild?.machine?.transition(event, ...arguments_);
-        resolve(this);
-        return;
-      }
+    // check nested state machine
+    if (await this._activeChild?.machine?.can(event, ...arguments_)) {
+      await this._activeChild?.machine?.transition(event, ...arguments_);
+      return this;
+    }
+    // propagate to parent
 
-      // propagate to parent
-      if (!(await this.can(event, ...arguments_))) {
-        reject(
-          new StateMachineError(
-            `Event ${String(event)} is not allowed in state ${String(
-              this.current,
-            )} of ${this._id}`,
-          ),
-        );
-        return;
-      }
+    if (!(await this.can(event, ...arguments_))) {
+      throw new StateMachineError(
+        `Event ${String(event)} is not allowed in state ${String(
+          this.current,
+        )} of ${this._id}`,
+      );
+    }
 
-      // delay execution to make it really async
-      setTimeout(() => {
-        const transitions = this._transitions.get(event);
+    const transitions = this._transitions.get(event);
 
-        const transition =
-          // we already checked if the event is allowed
-          // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
-          transitions?.get(this.current) ?? transitions?.get(All)!;
+    const transition =
+      // we already checked if the event is allowed
+      // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+      transitions?.get(this.current) ?? transitions?.get(All)!;
 
-        this.executeTransition(transition, ...arguments_).then(() =>
-          resolve(this),
-        );
-      }, 0);
-    });
+    await this.executeTransition(transition, ...arguments_);
+
+    return this;
   }
 
   public async identity<Arguments extends Array<unknown> = Array<unknown>>(
@@ -650,6 +656,10 @@ export class _StateMachine<
 
   private makeTransition(transition: ITransition<State, Event, Context>) {
     this._last = transition ?? this._last;
+
+    if (!this._states) {
+      return;
+    }
 
     if (!(transition.to in this._states)) {
       this._activeChild = null;
