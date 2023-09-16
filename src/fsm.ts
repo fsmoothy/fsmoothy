@@ -170,8 +170,6 @@ export class _StateMachine<
 
     this._ctx = parameters.ctx?.(parameters) ?? ({} as Context);
 
-    this.checkDuplicateTransitions(parameters.transitions);
-
     this._allowedNames = this.prepareEvents(parameters.transitions);
     this._transitions = this.prepareTransitions(parameters.transitions);
     this._subscribers = this.prepareSubscribers(parameters.subscribers);
@@ -531,39 +529,6 @@ export class _StateMachine<
   }
 
   /**
-   * Adds useful warnings on fsm initialization.
-   */
-  private checkDuplicateTransitions(
-    transitions: Array<ITransition<State, Event, Context>>,
-  ) {
-    const transitionsMap = new Map<
-      State,
-      Map<Event, ITransition<State, Event, Context>>
-    >();
-
-    for (const transition of transitions) {
-      const { from, event, to } = transition;
-      const froms = Array.isArray(from) ? from : [from];
-
-      for (const from of froms) {
-        if (!transitionsMap.has(from)) {
-          transitionsMap.set(from, new Map());
-        }
-
-        if (transitionsMap.get(from)?.has(event)) {
-          console.warn(
-            `Duplicate transition from ${String(from)} to ${String(
-              to,
-            )} on event ${String(event)}`,
-          );
-        }
-
-        transitionsMap.get(from)?.set(event, transition);
-      }
-    }
-  }
-
-  /**
    * Adds event methods to the state machine instance.
    */
   private addEventMethods(event: Event) {
@@ -586,7 +551,7 @@ export class _StateMachine<
   private populateEventMethods(
     parameters: IStateMachineParameters<State, Event, Context>,
   ) {
-    const nestedEvents = Object.values(parameters.states ?? {}).flatMap(
+    const nestedEvents = Object.values(this._states ?? {}).flatMap(
       (nested: any) => {
         return nested.machine.events;
       },
@@ -619,7 +584,7 @@ export class _StateMachine<
   private populateCheckers(
     parameters: IStateMachineParameters<State, Event, Context>,
   ) {
-    const nestedStates = Object.values(parameters.states ?? {}).flatMap(
+    const nestedStates = Object.values(this._states ?? {}).flatMap(
       (nested: any) => {
         return nested.machine.states;
       },

@@ -319,10 +319,9 @@ describe('Durak game FSM', () => {
     await durakGameFSM.start();
 
     expect(durakGameFSM.isPlayerOneTurn()).toBeTruthy();
-    expect(durakGameFSM.child.is(PlayerTurnState.attacking)).toBeTruthy();
+    expect(durakGameFSM.isAttacking()).toBeTruthy();
 
-    await durakGameFSM.child.transition(
-      PlayerTurnEvent.putCard,
+    await durakGameFSM.putCard(
       {
         rank: '6',
         suit: 'spades',
@@ -331,18 +330,18 @@ describe('Durak game FSM', () => {
     );
     await durakGameFSM.nextPlayer();
 
-    expect(durakGameFSM.child.is(PlayerTurnState.defending)).toBeTruthy();
-    await durakGameFSM.child.take(durakGameFSM.context.board);
+    expect(durakGameFSM.isDefending()).toBeTruthy();
+    await durakGameFSM.take(durakGameFSM.context.board);
     await durakGameFSM.nextPlayer();
-    await durakGameFSM.child.pass();
+    await durakGameFSM.pass();
     await durakGameFSM.draw();
     await durakGameFSM.nextPlayer();
 
     await durakGameFSM.nextTurn();
-    expect(durakGameFSM.child.is(PlayerTurnState.attacking)).toBeTruthy();
-    await durakGameFSM.child.pass();
+    expect(durakGameFSM.isAttacking()).toBeTruthy();
+    await durakGameFSM.pass();
     await durakGameFSM.nextPlayer();
-    await durakGameFSM.child.pass();
+    await durakGameFSM.pass();
 
     await durakGameFSM.finish();
     expect(durakGameFSM.isFinished()).toBeTruthy();
