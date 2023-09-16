@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/fsmoothy/fsmoothy/compare/v1.3.0...v1.3.1) (2023-09-16)
+
+
+### Bug Fixes
+
+* use internal state for populate events and checkers, remove extra check ([19aedbc](https://github.com/fsmoothy/fsmoothy/commit/19aedbcb5ea7f494cbd9494c8e2b71512144f880))
+
 # [1.3.0](https://github.com/fsmoothy/fsmoothy/compare/v1.2.0...v1.3.0) (2023-09-14)
 
 
