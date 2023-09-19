@@ -31,7 +31,7 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "commit": "cz",
-    "docs:build": "typedoc src/index.ts --tsconfig tsconfig.build.json --plugin typedoc-plugin-mermaid",
+    "docs:build": "typedoc src/index.ts --tsconfig tsconfig.build.json",
     "postdocs:build": "cp -r logo docs",
     "release": "semantic-release",
     "clean": "rm -rf dist",
@@ -61,7 +61,9 @@
     "semantic-release": "^21.1.1",
     "ts-jest": "^29.1.1",
     "typedoc": "^0.25.0",
+    "typedoc-plugin-extras": "^3.0.0",
     "typedoc-plugin-mermaid": "^1.10.0",
+    "typedoc-plugin-replace-text": "^3.2.0",
     "typescript": "^5.2.2"
   },
   "commit": "cz",

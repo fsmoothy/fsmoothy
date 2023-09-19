@@ -1,4 +1,4 @@
-import { t, StateMachine, IStateMachineParameters } from '../..';
+import { t, StateMachine, IStateMachineParameters, nested } from '../..';
 
 enum State {
   green = 'green',
@@ -10,9 +10,18 @@ enum Event {
   Tick = 'tick',
 }
 
+enum CrosswalkStates {
+  walk = 'walk',
+  dontWalk = 'dontWalk',
+}
+
+enum CrosswalkEvents {
+  toggle = 'toggle',
+}
+
 const trafficLightStateMachineParameters: IStateMachineParameters<
-  State,
-  Event
+  State | CrosswalkStates,
+  Event | CrosswalkEvents
 > = {
   initial: State.green,
   transitions: [
@@ -20,6 +29,29 @@ const trafficLightStateMachineParameters: IStateMachineParameters<
     t(State.yellow, Event.Tick, State.red),
     t(State.red, Event.Tick, State.green),
   ],
+  states: () => ({
+    [State.red]: nested(
+      {
+        id: 'crosswalk',
+        initial: CrosswalkStates.dontWalk,
+        transitions: [
+          t(
+            CrosswalkStates.dontWalk,
+            CrosswalkEvents.toggle,
+            CrosswalkStates.walk,
+          ),
+          t(
+            CrosswalkStates.walk,
+            CrosswalkEvents.toggle,
+            CrosswalkStates.dontWalk,
+          ),
+        ],
+      },
+      {
+        history: 'none',
+      },
+    ),
+  }),
 };
 
 const createTrafficLightStateMachine = () =>
@@ -53,5 +85,27 @@ describe('Traffic Light', () => {
 
     await trafficLightStateMachine.tick();
     expect(trafficLightStateMachine.current).toBe(State.green);
+  });
+
+  it('should work for traffic light with crosswalk', async () => {
+    const trafficLightStateMachine = createTrafficLightStateMachine();
+
+    expect(trafficLightStateMachine.current).toBe(State.green);
+    await trafficLightStateMachine.tick();
+    await trafficLightStateMachine.tick();
+    expect(trafficLightStateMachine.current).toBe(State.red);
+    expect(trafficLightStateMachine.isDontWalk()).toBeTruthy();
+
+    await trafficLightStateMachine.toggle();
+    expect(trafficLightStateMachine.isWalk()).toBeTruthy();
+
+    await trafficLightStateMachine.tick();
+    expect(trafficLightStateMachine.current).toBe(State.green);
+
+    await trafficLightStateMachine.tick();
+    await trafficLightStateMachine.tick();
+
+    expect(trafficLightStateMachine.current).toBe(State.red);
+    expect(trafficLightStateMachine.isDontWalk()).toBeTruthy();
   });
 });

@@ -724,6 +724,7 @@ export class _StateMachine<
  * });
  *
  * @returns New state machine.
+ *
  */
 export const StateMachine = function <
   const State extends AllowedNames,
