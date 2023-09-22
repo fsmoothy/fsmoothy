@@ -655,4 +655,47 @@ describe('StateMachine', () => {
       expect(fsm.is(State.green)).toBe(true);
     });
   });
+
+  describe('bind', () => {
+    it('should be able to bind another context to state machine callbacks', async () => {
+      let handlerContext: unknown;
+      let onExitCallbackContext: unknown;
+
+      const subscribeCallback = jest.fn().mockImplementation(function (
+        this: unknown,
+      ) {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
+        handlerContext = this;
+      });
+
+      const callback = jest.fn().mockImplementation(function (this: unknown) {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
+        onExitCallbackContext = this;
+      });
+
+      const stateMachine = new StateMachine({
+        initial: State.idle,
+        ctx: () => ({ foo: 'bar' }),
+        transitions: [
+          t(State.idle, Event.fetch, State.pending),
+          t(All, Event.resolve, State.idle, { onExit: callback }),
+        ],
+        subscribers: {
+          [Event.fetch]: [subscribeCallback],
+        },
+      });
+
+      const bound = {
+        foo: 'bar',
+      };
+
+      await stateMachine.bind(bound).fetch();
+      expect(subscribeCallback).toHaveBeenCalledTimes(1);
+      expect(handlerContext).toBe(bound);
+
+      await stateMachine.resolve();
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(onExitCallbackContext).toBe(bound);
+    });
+  });
 });

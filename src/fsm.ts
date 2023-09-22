@@ -94,6 +94,14 @@ export type StateMachineConstructor = {
   ): IStateMachine<State, Event, Context>;
 };
 
+interface IInternalTransition<
+  State extends AllowedNames,
+  Event extends AllowedNames,
+  Context extends object,
+> extends ITransition<State, Event, Context> {
+  _original: ITransition<State, Event, Context>;
+}
+
 const IdentityEvent = Symbol('IdentityEvent') as any;
 
 function capitalize(parameter: unknown) {
@@ -110,12 +118,16 @@ function identityTransition<
   State extends AllowedNames,
   Event extends AllowedNames,
   Context extends object,
->(state: State): ITransition<State, Event, Context> {
-  return {
+>(state: State) {
+  const transition = {
     from: state,
     event: IdentityEvent,
     to: state,
-  } as ITransition<State, Event, Context>;
+  };
+  return {
+    ...transition,
+    _original: transition,
+  } as IInternalTransition<State, Event, Context>;
 }
 
 export class _StateMachine<
@@ -144,7 +156,7 @@ export class _StateMachine<
    */
   private _transitions: Map<
     Event,
-    Map<State, ITransition<State, Event, Context>>
+    Map<State, IInternalTransition<State, Event, Context>>
   >;
 
   private _subscribers = new Map<
@@ -425,6 +437,31 @@ export class _StateMachine<
     return await this.transition(IdentityEvent as Event, ...arguments_);
   }
 
+  /**
+   * Binds external context to the state machine callbacks.
+   *
+   * @param this - Context to bind.
+   * @returns state machine instance.
+   */
+  public bind<T>(_this: T) {
+    for (const callbacks of this._subscribers.values()) {
+      for (const callback of callbacks.keys()) {
+        callbacks.set(callback, callback.bind(_this));
+      }
+    }
+
+    for (const transitionsByState of this._transitions.values()) {
+      for (const transition of transitionsByState.values()) {
+        transition.onEnter = transition._original.onEnter?.bind(_this);
+        transition.onExit = transition._original.onExit?.bind(_this);
+        transition.onLeave = transition._original.onLeave?.bind(_this);
+        transition.guard = transition._original.guard?.bind(_this);
+      }
+    }
+
+    return this;
+  }
+
   private prepareSubscribers(subscribers?: Subscribers<Event, Context>) {
     const _subscribers = new Map<
       Event,
@@ -499,7 +536,7 @@ export class _StateMachine<
       if (!accumulator.has(event)) {
         accumulator.set(
           event,
-          new Map<State, ITransition<State, Event, Context>>(),
+          new Map<State, IInternalTransition<State, Event, Context>>(),
         );
       }
 
@@ -508,11 +545,11 @@ export class _StateMachine<
       }
 
       return accumulator;
-    }, new Map<Event, Map<State, ITransition<State, Event, Context>>>());
+    }, new Map<Event, Map<State, IInternalTransition<State, Event, Context>>>());
 
     _transitionMap.set(
       IdentityEvent as Event,
-      new Map<State, ITransition<State, Event, Context>>(),
+      new Map<State, IInternalTransition<State, Event, Context>>(),
     );
 
     for (const { from } of transitions) {
@@ -616,6 +653,7 @@ export class _StateMachine<
       onEnter: transition.onEnter?.bind(this),
       onExit: transition.onExit?.bind(this),
       guard: transition.guard?.bind(this),
+      _original: transition,
     };
   }
 

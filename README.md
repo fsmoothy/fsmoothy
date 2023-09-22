@@ -357,7 +357,7 @@ The state machine has the following lifecycle methods in the order of execution:
 You can access the fsm instance using `this` keyword.
 
 ```typescript
-orderItemFSM.onEnter(function () {
+orderItemFSM.on(function () {
   console.log(this.current);
 });
 orderItemFSM.on(OrderItemEvent.create, function () {
@@ -365,6 +365,14 @@ orderItemFSM.on(OrderItemEvent.create, function () {
 });
 
 await orderItemFSM.create();
+```
+
+You also able to use `bind` method to bind your own `this` keyword to the function.
+
+```typescript
+orderItemFSM.on(function () {
+  console.log(this.current);
+}.bind({ current: 'test' }));
 ```
 
 ### Error handling
