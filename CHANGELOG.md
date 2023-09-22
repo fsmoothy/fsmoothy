@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/fsmoothy/fsmoothy/compare/v1.3.1...v1.4.0) (2023-09-22)
+
+
+### Features
+
+* add bind method to bind custom this to callbacks ([b80db66](https://github.com/fsmoothy/fsmoothy/commit/b80db66f673bbd8f56f5d1031bf4cbccea06de0d))
+
 ## [1.3.1](https://github.com/fsmoothy/fsmoothy/compare/v1.3.0...v1.3.1) (2023-09-16)
 
 
