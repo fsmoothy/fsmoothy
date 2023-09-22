@@ -378,6 +378,22 @@ describe('StateMachine', () => {
       expect(callback).toHaveBeenCalledTimes(2);
       expect(callback2).toHaveBeenCalledTimes(2);
     });
+
+    it('should throw if error is thrown in subscriber', async () => {
+      const stateMachine = new StateMachine({
+        initial: State.idle,
+        transitions: [t(State.idle, Event.fetch, State.idle)],
+        subscribers: {
+          [Event.fetch]: [
+            () => {
+              throw new Error('test');
+            },
+          ],
+        },
+      });
+
+      await expect(stateMachine.fetch()).rejects.toThrow('test');
+    });
   });
 
   describe('nested', () => {

@@ -104,11 +104,7 @@ interface IInternalTransition<
 
 const IdentityEvent = Symbol('IdentityEvent') as any;
 
-function capitalize(parameter: unknown) {
-  if (typeof parameter !== 'string') {
-    return parameter;
-  }
-
+function capitalize(parameter: string) {
   return parameter.charAt(0).toUpperCase() + parameter.slice(1);
 }
 
