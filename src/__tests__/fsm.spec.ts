@@ -1,3 +1,5 @@
+import { describe, expect, it, vi } from 'vitest'
+
 import { StateMachine } from '../fsm';
 import { nested } from '../nested';
 import { All } from '../symbols';
@@ -60,7 +62,7 @@ describe('StateMachine', () => {
     it('should call onEnter, onExit and onLeave with context, arguments and bound state machine', async () => {
       let handlerContext: unknown;
 
-      const handler = jest.fn().mockImplementation(function (this: unknown) {
+      const handler = vi.fn().mockImplementation(function (this: unknown) {
         // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
         handlerContext = this;
       });
@@ -102,7 +104,7 @@ describe('StateMachine', () => {
     });
 
     it('should be able to add transition after initialization', async () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
 
       const stateMachine = new StateMachine({
         initial: State.idle,
@@ -280,7 +282,7 @@ describe('StateMachine', () => {
     it('should be abele to subscribe to transition event', async () => {
       const stateMachine = createFetchStateMachine();
 
-      const handler = jest.fn();
+      const handler = vi.fn();
 
       stateMachine.on(Event.fetch, handler);
 
@@ -295,7 +297,7 @@ describe('StateMachine', () => {
         transitions: [t(State.idle, Event.fetch, State.pending)],
       });
 
-      const handler = jest.fn();
+      const handler = vi.fn();
 
       stateMachine.on(Event.fetch, handler);
       stateMachine.off(Event.fetch, handler);
@@ -306,13 +308,13 @@ describe('StateMachine', () => {
 
     it('should do nothing on unsubscribe if handler is not subscribed', async () => {
       const stateMachine = createFetchStateMachine();
-      const callback = jest.fn();
+      const callback = vi.fn();
 
       stateMachine.off(Event.fetch, callback);
     });
 
     it('should attach subscriber on init', async () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
 
       const stateMachine = new StateMachine({
         initial: State.idle,
@@ -329,7 +331,7 @@ describe('StateMachine', () => {
     it('should pass context and this as state machine to subscriber', async () => {
       let handlerContext: unknown;
 
-      const callback = jest.fn().mockImplementation(function (this: unknown) {
+      const callback = vi.fn().mockImplementation(function (this: unknown) {
         // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
         handlerContext = this;
       });
@@ -350,8 +352,8 @@ describe('StateMachine', () => {
     });
 
     it('should be able to subscribe to All events', async () => {
-      const callback = jest.fn();
-      const callback2 = jest.fn();
+      const callback = vi.fn();
+      const callback2 = vi.fn();
 
       const stateMachine = new StateMachine({
         initial: State.idle,
@@ -550,11 +552,11 @@ describe('StateMachine', () => {
     });
 
     it('should trigger subscribers on nested effects and transitions', async () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
 
       let handlerContext: unknown;
 
-      const nestedCallback = jest.fn().mockImplementation(function (
+      const nestedCallback = vi.fn().mockImplementation(function (
         this: unknown,
       ) {
         // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
@@ -661,14 +663,14 @@ describe('StateMachine', () => {
       let handlerContext: unknown;
       let onExitCallbackContext: unknown;
 
-      const subscribeCallback = jest.fn().mockImplementation(function (
+      const subscribeCallback = vi.fn().mockImplementation(function (
         this: unknown,
       ) {
         // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
         handlerContext = this;
       });
 
-      const callback = jest.fn().mockImplementation(function (this: unknown) {
+      const callback = vi.fn().mockImplementation(function (this: unknown) {
         // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
         onExitCallbackContext = this;
       });
