@@ -9,6 +9,7 @@ export default defineConfig({
       exclude: ['src/**/*.d.ts', 'src/**/index.ts'],
       include: ['src/**/*.ts'],
       reportsDirectory: './coverage',
+      reporter: ['clover', 'html', 'lcov'],
     },
   },
 });
