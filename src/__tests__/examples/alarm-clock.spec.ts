@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest';
+
 import { StateMachine, t, IStateMachine, IStateMachineParameters } from '../..';
 
 enum ClockState {

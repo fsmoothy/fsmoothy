@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest';
 
 import { StateMachine } from '../fsm';
 import { nested } from '../nested';

@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest';
+
 import { t, StateMachine, IStateMachineParameters, nested } from '../..';
 
 enum State {

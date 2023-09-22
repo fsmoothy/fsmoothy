@@ -9,7 +9,6 @@ module.exports = {
   root: true,
   env: {
     node: true,
-    jest: true,
   },
   settings: {
     'import/resolver': {
