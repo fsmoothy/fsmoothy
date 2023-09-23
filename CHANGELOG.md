@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/fsmoothy/fsmoothy/compare/v1.4.0...v1.4.1) (2023-09-23)
+
+
+### Bug Fixes
+
+* bind also new subscribers and transitions ([cc240d1](https://github.com/fsmoothy/fsmoothy/commit/cc240d19f10e27dd924fef62a036a19d5dc78aa3))
+
 # [1.4.0](https://github.com/fsmoothy/fsmoothy/compare/v1.3.1...v1.4.0) (2023-09-22)
 
 
