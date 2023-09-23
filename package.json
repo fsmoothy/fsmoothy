@@ -14,13 +14,13 @@
     "typescript"
   ],
   "author": "Vassiliy Kuzenkov (bondiano)",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/fsmoothy/fsmoothy/issues"
   },
   "homepage": "https://github.com/fsmoothy/fsmoothy#readme",
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   },
   "scripts": {
     "prebuild": "npm run clean",

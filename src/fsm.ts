@@ -134,6 +134,7 @@ export class _StateMachine<
   private _last: ITransition<State, Event, Context>;
   private _id: string;
   private _ctx: Context;
+  private _boundTo: any = this;
 
   /**
    * For nested state machines.
@@ -354,7 +355,7 @@ export class _StateMachine<
     }
 
     const callbacks = this._subscribers.get(event);
-    callbacks?.set(callback!, callback!.bind(this));
+    callbacks?.set(callback!, callback!.bind(this._boundTo));
 
     return this;
   }
@@ -454,6 +455,8 @@ export class _StateMachine<
         transition.guard = transition._original.guard?.bind(_this);
       }
     }
+
+    this._boundTo = _this;
 
     return this;
   }
@@ -645,10 +648,10 @@ export class _StateMachine<
   private bindToCallbacks(transition: ITransition<State, Event, Context>) {
     return {
       ...transition,
-      onLeave: transition.onLeave?.bind(this),
-      onEnter: transition.onEnter?.bind(this),
-      onExit: transition.onExit?.bind(this),
-      guard: transition.guard?.bind(this),
+      onLeave: transition.onLeave?.bind(this._boundTo),
+      onEnter: transition.onEnter?.bind(this._boundTo),
+      onExit: transition.onExit?.bind(this._boundTo),
+      guard: transition.guard?.bind(this._boundTo),
       _original: transition,
     };
   }

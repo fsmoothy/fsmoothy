@@ -715,5 +715,49 @@ describe('StateMachine', () => {
       expect(callback).toHaveBeenCalledTimes(1);
       expect(onExitCallbackContext).toBe(bound);
     });
+
+    it('should bind custom this either to subscribers and new transitions', async () => {
+      let handlerContext: unknown;
+      let onExitCallbackContext: unknown;
+
+      const subscribeCallback = vi.fn().mockImplementation(function (
+        this: unknown,
+      ) {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
+        handlerContext = this;
+      });
+
+      const callback = vi.fn().mockImplementation(function (this: unknown) {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
+        onExitCallbackContext = this;
+      });
+
+      const stateMachine = new StateMachine<State, Event, { foo: string }>({
+        initial: State.idle,
+        ctx: () => ({ foo: 'bar' }),
+        transitions: [t(State.idle, Event.fetch, State.pending)],
+      });
+
+      const bound = {
+        foo: 'bar',
+      };
+
+      stateMachine.bind(bound);
+      stateMachine.on(Event.fetch, subscribeCallback);
+
+      stateMachine.addTransition(
+        t(State.pending, Event.resolve, State.idle, {
+          onEnter: callback,
+        }),
+      );
+
+      await stateMachine.fetch();
+      expect(subscribeCallback).toHaveBeenCalledTimes(1);
+      expect(handlerContext).toBe(bound);
+
+      await stateMachine.resolve();
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(onExitCallbackContext).toBe(bound);
+    });
   });
 });
