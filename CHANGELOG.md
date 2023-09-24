@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/fsmoothy/fsmoothy/compare/v1.5.0...v1.6.0) (2023-09-24)
+
+
+### Features
+
+* allow async context initialization ([cfd1f6d](https://github.com/fsmoothy/fsmoothy/commit/cfd1f6d8a274c3bcab76c31ead9099b947532633))
+
 # [1.5.0](https://github.com/fsmoothy/fsmoothy/compare/v1.4.1...v1.5.0) (2023-09-24)
 
 
