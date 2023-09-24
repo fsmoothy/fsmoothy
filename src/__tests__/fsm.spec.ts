@@ -430,7 +430,7 @@ describe('StateMachine', () => {
           t(State.yellow, Event.next, State.red),
           t(State.red, Event.next, State.green),
         ],
-        states: {
+        states: () => ({
           [State.red]: nested({
             id: 'nested-fsm',
             initial: NestedStates.dontWalk,
@@ -438,7 +438,7 @@ describe('StateMachine', () => {
               t(NestedStates.dontWalk, NestedEvents.toggle, NestedStates.walk),
             ],
           }),
-        },
+        }),
       });
 
       await fsm.next();
@@ -468,7 +468,7 @@ describe('StateMachine', () => {
           t(State.yellow, Event.next, State.red),
           t(State.red, Event.next, State.green),
         ],
-        states: {
+        states: () => ({
           [State.red]: nested({
             id: 'nested-fsm',
             initial: NestedStates.dontWalk,
@@ -484,7 +484,7 @@ describe('StateMachine', () => {
               ],
             },
           }),
-        },
+        }),
       });
 
       await fsm.next();
@@ -521,7 +521,7 @@ describe('StateMachine', () => {
           t(State.yellow, Event.next, State.red),
           t(State.red, Event.next, State.green),
         ],
-        states: {
+        states: () => ({
           [State.red]: nested(
             {
               id: 'nested-fsm',
@@ -544,7 +544,7 @@ describe('StateMachine', () => {
             },
             { history: 'none' },
           ),
-        },
+        }),
       });
 
       await fsm.next();
@@ -592,7 +592,7 @@ describe('StateMachine', () => {
           t(State.yellow, Event.next, State.red),
           t(State.red, Event.next, State.green),
         ],
-        states: {
+        states: () => ({
           [State.red]: nested({
             id: 'nested-fsm',
             initial: NestedStates.dontWalk,
@@ -604,7 +604,7 @@ describe('StateMachine', () => {
               [NestedEvents.toggle]: [nestedCallback],
             },
           }),
-        },
+        }),
         subscribers: {
           [Event.next]: [callback],
         },

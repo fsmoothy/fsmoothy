@@ -321,7 +321,7 @@ const fsm = new StateMachine<
     t(State.yellow, Event.next, State.red),
     t(State.red, Event.next, State.green),
   ],
-  states: {
+  states: () => ({
     [State.red]: nested({
       id: 'walk-fsm',
       initial: NestedStates.dontWalk,
@@ -329,7 +329,7 @@ const fsm = new StateMachine<
         t(NestedStates.dontWalk, NestedEvents.toggle, NestedStates.walk),
       ],
     }),
-  },
+  }),
 });
 
 await fsm.next();
@@ -338,6 +338,8 @@ await fsm.toggle(); // fsm.current === NestedStates.walk
 await fsm.next(); // fsm.current === State.green
 fsm.is(NestedStates.walk); // false
 ```
+
+`states` property is a fabric function that returns an object with nested state machines. It's called only once on initialization.
 
 ### Lifecycle
 

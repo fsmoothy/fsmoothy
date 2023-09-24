@@ -38,17 +38,15 @@ export interface IStateMachineParameters<
   transitions: Transitions;
   id?: string;
   subscribers?: Subscribers<Event, Context>;
-  states?:
-    | States<State, NestedState>
-    | ((
-        parameters: IStateMachineParameters<
-          State,
-          Event,
-          Context,
-          Transition,
-          Transitions
-        >,
-      ) => States<State, NestedState>);
+  states?: (
+    parameters: IStateMachineParameters<
+      State,
+      Event,
+      Context,
+      Transition,
+      Transitions
+    >,
+  ) => States<State, NestedState>;
 }
 
 type StateMachineEvents<Event extends AllowedNames> = {
@@ -171,11 +169,7 @@ export class _StateMachine<
     this._id = parameters.id ?? 'fsm';
     this._last = identityTransition(parameters.initial);
 
-    if (typeof parameters.states === 'function') {
-      this._states = parameters.states(parameters);
-    } else {
-      this._states = parameters.states ?? {};
-    }
+    this._states = parameters.states?.(parameters) ?? {};
 
     this._ctx = parameters.ctx?.(parameters) ?? ({} as Context);
 
