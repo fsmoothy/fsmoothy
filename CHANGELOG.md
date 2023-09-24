@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/fsmoothy/fsmoothy/compare/v1.4.1...v1.5.0) (2023-09-24)
+
+
+### Features
+
+* don't allow to use states as a plain object ([19f5373](https://github.com/fsmoothy/fsmoothy/commit/19f53732ad6c8c852bdf3e2cbcfa1a73a95fa431))
+
 ## [1.4.1](https://github.com/fsmoothy/fsmoothy/compare/v1.4.0...v1.4.1) (2023-09-23)
 
 
