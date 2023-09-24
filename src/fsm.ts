@@ -25,7 +25,7 @@ export interface IStateMachineParameters<
   ],
   NestedState extends _NestedState<any> = _NestedState<any>,
 > {
-  ctx?: (
+  readonly ctx?: (
     parameters: IStateMachineParameters<
       State,
       Event,
@@ -33,12 +33,12 @@ export interface IStateMachineParameters<
       Transition,
       Transitions
     >,
-  ) => Context;
-  initial: State;
-  transitions: Transitions;
-  id?: string;
-  subscribers?: Subscribers<Event, Context>;
-  states?: (
+  ) => Context | Promise<Context>;
+  readonly initial: State;
+  readonly transitions: Transitions;
+  readonly id?: string;
+  readonly subscribers?: Subscribers<Event, Context>;
+  readonly states?: (
     parameters: IStateMachineParameters<
       State,
       Event,
@@ -133,6 +133,7 @@ export class _StateMachine<
   private _id: string;
   private _ctx: Context;
   private _boundTo: any = this;
+  private _ctxPromise: Promise<Context> | null = null;
 
   /**
    * For nested state machines.
@@ -171,7 +172,13 @@ export class _StateMachine<
 
     this._states = parameters.states?.(parameters) ?? {};
 
-    this._ctx = parameters.ctx?.(parameters) ?? ({} as Context);
+    const context = parameters.ctx?.(parameters) ?? ({} as Context);
+    if (context instanceof Promise) {
+      this._ctxPromise = context;
+      this._ctx = {} as Context;
+    } else {
+      this._ctx = context;
+    }
 
     this._allowedNames = this.prepareEvents(parameters.transitions);
     this._transitions = this.prepareTransitions(parameters.transitions);
@@ -416,6 +423,11 @@ export class _StateMachine<
       // we already checked if the event is allowed
       // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
       transitions?.get(this.current) ?? transitions?.get(All)!;
+
+    if (this._ctxPromise) {
+      this._ctx = await this._ctxPromise;
+      this._ctxPromise = null;
+    }
 
     await this.executeTransition(transition, ...arguments_);
 
@@ -692,7 +704,7 @@ export class _StateMachine<
     try {
       await this._last.onLeave?.(this._ctx, ...arguments_);
       await onEnter?.(this._ctx, ...arguments_);
-      await this.makeTransition(transition);
+      this.makeTransition(transition);
 
       for (const subscriber of subscribers?.values() ?? []) {
         await subscriber(this._ctx, ...arguments_);

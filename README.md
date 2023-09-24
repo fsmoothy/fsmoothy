@@ -115,9 +115,10 @@ Let's take a look at the `IStateMachineParameters<State, Event, Context>` interf
 
 - `id` - a unique identifier for the state machine (used for debugging purposes)
 - `initial` - the initial state of the state machine
-- `ctx` - initial context of the state machine
+- `ctx` - initializer for initial context of the state machine (it can return a promise, if so the context will be initialized after first transition)
 - `transitions` - an array of transitions
 - `subscribers` - an object with subscribers array for events
+- `states` - a fabric function that returns an object with nested state machines
 
 ### Transitions
 

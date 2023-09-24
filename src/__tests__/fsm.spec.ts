@@ -51,6 +51,20 @@ describe('StateMachine', () => {
     expect(stateMachine.current).toBe(State.pending);
   });
 
+  it('should be possible to define async initialization for context', async () => {
+    const stateMachine = new StateMachine({
+      initial: State.idle,
+      ctx: () => Promise.resolve({ foo: 'bar' }),
+      transitions: [
+        t(State.idle, Event.fetch, State.pending),
+        t(State.pending, Event.resolve, State.idle),
+      ],
+    });
+
+    await stateMachine.fetch();
+    expect(stateMachine.context).toEqual({ foo: 'bar' });
+  });
+
   describe('transition', () => {
     it('should change current state', async () => {
       const stateMachine = createFetchStateMachine();

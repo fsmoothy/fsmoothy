@@ -50,7 +50,7 @@ const orderItemFSMParameters: IStateMachineParameters<
         onExit(context: IOrderItemContext, place: string) {
           context.place = place;
         },
-      },
+      }
     ),
     t(
       [OrderItemState.assembly, OrderItemState.warehouse],
