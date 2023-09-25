@@ -151,6 +151,7 @@ In such cases, we're using next options:
 - `guard` - a function that verifies if the transition is permissible
 - `onEnter` - a function that executes when the transition is triggered
 - `onExit` - a function that executes when the transition is completed
+- `onLeave` - a function that executes when the next transition is triggered (before `onEnter`)
 
 ### Make transition
 
@@ -170,7 +171,7 @@ We're passing the `place` argument to the `transfer` method. It will be passed t
 We can add transition dynamically using the `addTransition` method.
 
 ```typescript
-const newOrderItemFSM = orderItemFSM.addTransition([
+orderItemFSM.addTransition([
   t(
     OrderItemState.shipping,
     OrderItemEvent.transfer,
