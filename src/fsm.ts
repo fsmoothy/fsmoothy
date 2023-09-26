@@ -106,6 +106,10 @@ function capitalize(parameter: string) {
   return parameter.charAt(0).toUpperCase() + parameter.slice(1);
 }
 
+function _true() {
+  return true;
+}
+
 const SpecialSymbols = new Set([All, IdentityEvent]);
 
 function identityTransition<
@@ -123,6 +127,12 @@ function identityTransition<
     _original: transition,
   } as IInternalTransition<State, Event, Context>;
 }
+
+type TransitionsStorage<
+  State extends AllowedNames,
+  Event extends AllowedNames,
+  Context extends object,
+> = Map<Event, Map<State, Array<IInternalTransition<State, Event, Context>>>>;
 
 export class _StateMachine<
   const State extends AllowedNames,
@@ -150,10 +160,7 @@ export class _StateMachine<
   /**
    * Map of transitions by event and from-state.
    */
-  private _transitions: Map<
-    Event,
-    Map<State, IInternalTransition<State, Event, Context>>
-  >;
+  private _transitions: TransitionsStorage<State, Event, Context>;
 
   private _subscribers = new Map<
     Event,
@@ -250,9 +257,14 @@ export class _StateMachine<
     for (const state of states) {
       this.addIsChecker(state);
 
-      this._transitions
-        .get(event)
-        ?.set(state, this.bindToCallbacks(transition as any));
+      const transitionsByState = this._transitions.get(event);
+
+      if (!transitionsByState?.has(state)) {
+        transitionsByState?.set(state, []);
+      }
+      transitionsByState
+        ?.get(state)
+        ?.push(this.bindToCallbacks(transition as any));
     }
 
     return this as unknown as IStateMachine<
@@ -307,26 +319,42 @@ export class _StateMachine<
     ...arguments_: Arguments
   ) {
     const allowedNames = this._allowedNames.get(this.current);
-    const transitions = this._transitions.get(event);
+    const transitionsByState = this._transitions.get(event);
 
     // check has from: all
-    if (transitions?.has(All)) {
-      const { guard } = transitions.get(All) ?? {};
+    if (transitionsByState?.has(All)) {
+      for (const transition of transitionsByState.get(All) ?? []) {
+        const { guard = _true } = transition;
 
-      return await (guard?.(this._ctx, ...arguments_) ?? true);
+        const result = await (guard?.(this._ctx, ...arguments_) ?? true);
+
+        if (result) {
+          return true;
+        }
+      }
     }
 
     if (!allowedNames?.has(event)) {
       return false;
     }
 
-    if (!transitions?.has(this.current)) {
+    if (!transitionsByState?.has(this.current)) {
       return false;
     }
 
-    const { guard } = transitions.get(this.current) ?? {};
+    const transitions = transitionsByState.get(this.current) ?? [];
 
-    return await (guard?.(this._ctx, ...arguments_) ?? true);
+    for (const transition of transitions) {
+      const { guard = _true } = transition;
+
+      const result = await (guard?.(this._ctx, ...arguments_) ?? true);
+
+      if (result) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -417,12 +445,7 @@ export class _StateMachine<
       );
     }
 
-    const transitions = this._transitions.get(event);
-
-    const transition =
-      // we already checked if the event is allowed
-      // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
-      transitions?.get(this.current) ?? transitions?.get(All)!;
+    const transition = (await this.getAllowedTransition(event, ...arguments_))!;
 
     if (this._ctxPromise) {
       this._ctx = await this._ctxPromise;
@@ -449,16 +472,60 @@ export class _StateMachine<
 
     for (const transitionsByState of this._transitions.values()) {
       for (const transition of transitionsByState.values()) {
-        transition.onEnter = transition._original.onEnter?.bind(_this);
-        transition.onExit = transition._original.onExit?.bind(_this);
-        transition.onLeave = transition._original.onLeave?.bind(_this);
-        transition.guard = transition._original.guard?.bind(_this);
+        for (const t of transition) {
+          t.onEnter = t._original.onEnter?.bind(_this);
+          t.onExit = t._original.onExit?.bind(_this);
+          t.onLeave = t._original.onLeave?.bind(_this);
+          t.guard = t._original.guard?.bind(_this);
+        }
       }
     }
 
     this._boundTo = _this;
 
     return this;
+  }
+
+  private async getAllowedTransition(
+    event: Event,
+    ...arguments_: Array<unknown>
+  ) {
+    const transitionsByState = this._transitions.get(event);
+
+    if (!transitionsByState) {
+      return null;
+    }
+
+    const transitions = transitionsByState.get(this.current);
+
+    if (transitions) {
+      for (const t of transitions) {
+        const { guard = _true } = t;
+
+        const result = await (guard?.(this._ctx, ...arguments_) ?? true);
+
+        if (result) {
+          return t;
+        }
+      }
+    }
+
+    // Handle from All
+
+    const allTransitions = transitionsByState.get(All);
+    if (allTransitions) {
+      for (const t of allTransitions) {
+        const { guard = _true } = t;
+
+        const result = await (guard?.(this._ctx, ...arguments_) ?? true);
+
+        if (result) {
+          return t;
+        }
+      }
+    }
+
+    return null;
   }
 
   private prepareSubscribers(subscribers?: Subscribers<Event, Context>) {
@@ -533,18 +600,21 @@ export class _StateMachine<
       const froms = Array.isArray(from) ? from : [from];
 
       if (!accumulator.has(event)) {
-        accumulator.set(
-          event,
-          new Map<State, IInternalTransition<State, Event, Context>>(),
-        );
+        accumulator.set(event, new Map());
       }
 
+      const transitionsByState = accumulator.get(event);
+
       for (const from of froms) {
-        accumulator.get(event)?.set(from, this.bindToCallbacks(transition));
+        if (!transitionsByState?.has(from)) {
+          transitionsByState?.set(from, []);
+        }
+
+        transitionsByState?.get(from)?.push(this.bindToCallbacks(transition));
       }
 
       return accumulator;
-    }, new Map<Event, Map<State, IInternalTransition<State, Event, Context>>>());
+    }, new Map());
   }
 
   /**

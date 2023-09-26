@@ -12,6 +12,7 @@
   - [StateMachine Parameters](#statemachine-parameters)
   - [Transitions](#transitions)
   - [Make transition](#make-transition)
+  - [Conditional transitions](#conditional-transitions)
   - [Current state](#current-state)
   - [Transition availability](#transition-availability)
   - [Subscribers](#subscribers)
@@ -165,6 +166,34 @@ await orderItemFSM.ship();
 ```
 
 We're passing the `place` argument to the `transfer` method. It will be passed to the `guard` and `onExit` functions.
+
+### Conditional transitions
+
+We can use the `guard` function to make a transition conditional.
+
+```typescript
+const stateMachine = new StateMachine<State, Event, { foo: string }>({
+  initial: State.idle,
+  ctx: () => ({ foo: 'bar' }),
+  transitions: [
+    t(State.idle, Event.fetch, State.pending, {
+      guard: (context) => context.foo === 'bar',
+    }),
+    t(State.idle, Event.fetch, State.resolved, {
+      guard: (context) => context.foo === 'foo',
+    }),
+    t(All, Event.reset, State.idle),
+  ],
+});
+
+await stateMachine.fetch(); // now current state is pending
+
+await stateMachine.reset();
+stateMachine.context.foo = 'foo';
+await stateMachine.fetch(); // now current state is resolved
+```
+
+It will moving to the next state only if the `guard` function returns `true`.
 
 ### Dynamic add transitions
 

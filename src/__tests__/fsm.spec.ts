@@ -124,15 +124,12 @@ describe('StateMachine', () => {
         initial: State.idle,
         ctx: () => ({ n: 1 }),
         transitions: [
-          t(
-            State.idle,
-            Event.fetch,
-            State.pending,
-            (context: { n: number }) => {
+          t(State.idle, Event.fetch, State.pending, {
+            onExit(context: { n: number }) {
               context.n += 1;
               return true;
             },
-          ),
+          }),
           {
             from: State.pending,
             event: Event.resolve,
@@ -233,6 +230,30 @@ describe('StateMachine', () => {
       await stateMachine.reject();
       await stateMachine.reset();
       expect(stateMachine.isIdle()).toBe(true);
+    });
+
+    it('should be able to define conditional transitions', async () => {
+      const stateMachine = new StateMachine<State, Event, { foo: string }>({
+        initial: State.idle,
+        ctx: () => ({ foo: 'bar' }),
+        transitions: [
+          t(State.idle, Event.fetch, State.pending, {
+            guard: (context) => context.foo === 'bar',
+          }),
+          t(State.idle, Event.fetch, State.resolved, {
+            guard: (context) => context.foo === 'foo',
+          }),
+          t(All, Event.reset, State.idle),
+        ],
+      });
+
+      await stateMachine.fetch();
+      expect(stateMachine.isPending()).toBe(true);
+
+      await stateMachine.reset();
+      stateMachine.context.foo = 'foo';
+      await stateMachine.fetch();
+      expect(stateMachine.isResolved()).toBe(true);
     });
   });
 
