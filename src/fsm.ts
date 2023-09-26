@@ -434,12 +434,6 @@ export class _StateMachine<
     return this;
   }
 
-  public async identity<Arguments extends Array<unknown> = Array<unknown>>(
-    ...arguments_: Arguments
-  ) {
-    return await this.transition(IdentityEvent as Event, ...arguments_);
-  }
-
   /**
    * Binds external context to the state machine callbacks.
    *
@@ -505,7 +499,7 @@ export class _StateMachine<
 
     for (const from of [...froms, to]) {
       if (!this._allowedNames.has(from)) {
-        this._allowedNames.set(from, new Set<Event>([IdentityEvent as Event]));
+        this._allowedNames.set(from, new Set<Event>());
       }
 
       this._allowedNames.get(from)?.add(event);
@@ -521,7 +515,7 @@ export class _StateMachine<
 
       for (const from of [...froms, to]) {
         if (!accumulator.has(from)) {
-          accumulator.set(from, new Set<Event>([IdentityEvent as Event]));
+          accumulator.set(from, new Set<Event>());
         }
 
         accumulator.get(from)?.add(event);
@@ -534,7 +528,7 @@ export class _StateMachine<
   private prepareTransitions(
     transitions: Array<ITransition<State, Event, Context>>,
   ) {
-    const _transitionMap = transitions.reduce((accumulator, transition) => {
+    return transitions.reduce((accumulator, transition) => {
       const { from, event } = transition;
       const froms = Array.isArray(from) ? from : [from];
 
@@ -551,23 +545,6 @@ export class _StateMachine<
 
       return accumulator;
     }, new Map<Event, Map<State, IInternalTransition<State, Event, Context>>>());
-
-    _transitionMap.set(
-      IdentityEvent as Event,
-      new Map<State, IInternalTransition<State, Event, Context>>(),
-    );
-
-    for (const { from } of transitions) {
-      const froms = Array.isArray(from) ? from : [from];
-
-      for (const from of froms) {
-        _transitionMap
-          .get(IdentityEvent as Event)
-          ?.set(from, identityTransition(from));
-      }
-    }
-
-    return _transitionMap;
   }
 
   /**

@@ -209,27 +209,6 @@ describe('StateMachine', () => {
       expect.assertions(1);
     });
 
-    it('should be able to make identity transition for every state', async () => {
-      const stateMachine = new StateMachine({
-        initial: State.idle,
-        transitions: [
-          t(State.idle, Event.fetch, State.pending),
-          t(State.pending, Event.resolve, State.idle),
-        ],
-      });
-
-      await stateMachine.identity();
-      expect(stateMachine.current).toBe(State.idle);
-
-      await stateMachine.transition(Event.fetch);
-      await stateMachine.identity();
-      expect(stateMachine.current).toBe(State.pending);
-
-      await stateMachine.transition(Event.resolve);
-      await stateMachine.identity();
-      expect(stateMachine.current).toBe(State.idle);
-    });
-
     it('should be able to make transition from All states', async () => {
       const stateMachine = new StateMachine<State, Event, object>({
         initial: State.idle,
