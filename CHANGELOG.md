@@ -1,3 +1,12 @@
+# [1.7.0](https://github.com/fsmoothy/fsmoothy/compare/v1.6.0...v1.7.0) (2023-09-28)
+
+
+### Features
+
+* allow conditional transition ([d873257](https://github.com/fsmoothy/fsmoothy/commit/d873257f0a26547c57ddf4c7ce3a44916d633657))
+* get rid of I in interface names ([6d92488](https://github.com/fsmoothy/fsmoothy/commit/6d9248893cc00e1b80e4236771b53905d6c1d796))
+* get rid of useless identity transition ([e4a2f64](https://github.com/fsmoothy/fsmoothy/commit/e4a2f64e0da72032751ee1da82854af7f7a099f7))
+
 # [1.6.0](https://github.com/fsmoothy/fsmoothy/compare/v1.5.0...v1.6.0) (2023-09-24)
 
 
