@@ -27,26 +27,6 @@ function _noop() {
  */
 
 export function t<
-  const State extends AllowedNames,
-  const Event extends AllowedNames,
-  Context extends object,
->(
-  from: Array<State> | State,
-  event: Event,
-  to: State,
-  options: TransitionOptions<Context>,
-): Transition<State, Event, Context>;
-export function t<
-  State extends AllowedNames,
-  Event extends AllowedNames,
-  Context extends object,
->(
-  from: Array<State> | State,
-  event: Event,
-  to: State,
-  guard?: Guard<Context>,
-): Transition<State, Event, Context>;
-export function t<
   State extends AllowedNames,
   Event extends AllowedNames,
   Context extends object,
