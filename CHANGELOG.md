@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/fsmoothy/fsmoothy/compare/v1.7.0...v1.7.1) (2023-09-28)
+
+
+### Bug Fixes
+
+* get rid of useless types to fix types errors ([a686ecf](https://github.com/fsmoothy/fsmoothy/commit/a686ecf039ab1f6d16b9cb8d0875dbb41063a82a))
+
 # [1.7.0](https://github.com/fsmoothy/fsmoothy/compare/v1.6.0...v1.7.0) (2023-09-28)
 
 
