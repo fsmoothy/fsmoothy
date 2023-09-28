@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { IStateMachineParameters, StateMachine, t } from '../..';
+import { StateMachineParameters, StateMachine, t } from '../..';
 
 enum OrderItemState {
   draft = 'draft',
@@ -22,7 +22,7 @@ interface IOrderItemContext {
   place: string;
 }
 
-const orderItemFSMParameters: IStateMachineParameters<
+const orderItemFSMParameters: StateMachineParameters<
   OrderItemState,
   OrderItemEvent,
   IOrderItemContext

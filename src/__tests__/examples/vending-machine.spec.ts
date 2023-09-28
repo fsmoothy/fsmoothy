@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { StateMachine, IStateMachineParameters, t } from '../..';
+import { StateMachine, StateMachineParameters, t } from '../..';
 
 enum State {
   Idle = 'idle',
@@ -21,7 +21,7 @@ interface IVendingMachineContext {
   depositedCoins: number;
 }
 
-const vendingMachineStateMachineParameters: IStateMachineParameters<
+const vendingMachineStateMachineParameters: StateMachineParameters<
   State,
   Event,
   IVendingMachineContext

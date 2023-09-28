@@ -1,17 +1,20 @@
 export type AllowedNames = string | number;
 
-export type Callback<
+export interface Callback<
   Context extends object,
   T extends Array<any> = Array<any>,
-> =
-  | ((context: Context, ...arguments_: T) => Promise<void>)
-  | ((context: Context, ...arguments_: T) => void);
+> {
+  (context: Context, ...arguments_: T): Promise<void> | void;
+}
 
-export type Guard<Context extends object, T extends Array<any> = Array<any>> =
-  | ((context: Context, ...arguments_: T) => boolean)
-  | ((context: Context, ...arguments_: T) => Promise<boolean>);
+export interface Guard<
+  Context extends object,
+  T extends Array<any> = Array<any>,
+> {
+  (context: Context, ...arguments_: T): Promise<boolean> | boolean;
+}
 
-export interface ITransition<
+export interface Transition<
   State extends AllowedNames | Array<AllowedNames>,
   Event extends AllowedNames,
   Context extends object,

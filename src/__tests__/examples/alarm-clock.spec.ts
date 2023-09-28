@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { StateMachine, t, IStateMachine, IStateMachineParameters } from '../..';
+import { StateMachine, t, IStateMachine, StateMachineParameters } from '../..';
 
 enum ClockState {
   Clock = 'clock',
@@ -43,7 +43,7 @@ const addHours: ClockAddTimeCallback = (type) => (context) => {
   context[type].hours = (context[type].hours + 1) % 24;
 };
 
-const stateMachineParameters: IStateMachineParameters<
+const stateMachineParameters: StateMachineParameters<
   ClockState,
   ClockEvent,
   IClockContext

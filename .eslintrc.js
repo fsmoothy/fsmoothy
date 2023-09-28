@@ -122,17 +122,6 @@ module.exports = {
             argsIgnorePattern: '^_',
           },
         ],
-        '@typescript-eslint/naming-convention': [
-          ERROR,
-          {
-            selector: 'interface',
-            format: ['PascalCase'],
-            custom: {
-              regex: '^I[A-Z]',
-              match: true,
-            },
-          },
-        ],
         '@typescript-eslint/ban-ts-comment': [
           'error',
           {

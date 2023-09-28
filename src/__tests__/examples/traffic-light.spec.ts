@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { t, StateMachine, IStateMachineParameters, nested } from '../..';
+import { t, StateMachine, StateMachineParameters, nested } from '../..';
 
 enum State {
   green = 'green',
@@ -21,7 +21,7 @@ enum CrosswalkEvents {
   toggle = 'toggle',
 }
 
-const trafficLightStateMachineParameters: IStateMachineParameters<
+const trafficLightStateMachineParameters: StateMachineParameters<
   State | CrosswalkStates,
   Event | CrosswalkEvents
 > = {

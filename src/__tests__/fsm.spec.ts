@@ -127,7 +127,6 @@ describe('StateMachine', () => {
           t(State.idle, Event.fetch, State.pending, {
             onExit(context: { n: number }) {
               context.n += 1;
-              return true;
             },
           }),
           {
@@ -522,10 +521,13 @@ describe('StateMachine', () => {
     });
 
     it('should not save nested FSM context if history is none', async () => {
+      interface Context {
+        test: string;
+      }
       const fsm = new StateMachine<
         State | NestedStates,
         Event | NestedEvents,
-        { test: string }
+        Context
       >({
         id: 'fsm',
         initial: State.green,

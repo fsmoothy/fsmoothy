@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   StateMachine,
   t,
-  IStateMachineParameters,
+  StateMachineParameters,
   nested,
   IStateMachine,
   All,
@@ -168,7 +168,7 @@ const buildPlayerTurnFSM = (player: number) => {
   });
 };
 
-const durakGameFSMParameters: IStateMachineParameters<
+const durakGameFSMParameters: StateMachineParameters<
   GameState,
   GameEvent,
   IDurakGameContext

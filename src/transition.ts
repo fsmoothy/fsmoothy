@@ -1,6 +1,6 @@
-import { AllowedNames, Callback, Guard, ITransition } from './types';
+import { AllowedNames, Callback, Guard, Transition } from './types';
 
-interface ITransitionOptions<Context extends object> {
+interface TransitionOptions<Context extends object> {
   onExit?: Callback<Context>;
   onEnter?: Callback<Context>;
   onLeave?: Callback<Context>;
@@ -27,15 +27,15 @@ function _noop() {
  */
 
 export function t<
-  State extends AllowedNames,
-  Event extends AllowedNames,
+  const State extends AllowedNames,
+  const Event extends AllowedNames,
   Context extends object,
 >(
   from: Array<State> | State,
   event: Event,
   to: State,
-  options: ITransitionOptions<Context>,
-): ITransition<State, Event, Context>;
+  options: TransitionOptions<Context>,
+): Transition<State, Event, Context>;
 export function t<
   State extends AllowedNames,
   Event extends AllowedNames,
@@ -45,7 +45,7 @@ export function t<
   event: Event,
   to: State,
   guard?: Guard<Context>,
-): ITransition<State, Event, Context>;
+): Transition<State, Event, Context>;
 export function t<
   State extends AllowedNames,
   Event extends AllowedNames,
@@ -54,8 +54,8 @@ export function t<
   from: Array<State> | State,
   event: Event,
   to: State,
-  guardOrOptions?: Guard<Context> | ITransitionOptions<Context>,
-): ITransition<State, Event, Context> {
+  guardOrOptions?: Guard<Context> | TransitionOptions<Context>,
+): Transition<State, Event, Context> {
   if (typeof guardOrOptions === 'function') {
     return {
       from,

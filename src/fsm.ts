@@ -1,7 +1,7 @@
 import { StateMachineError } from './fsm.error';
 import { NestedState as _NestedState } from './nested';
 import { All } from './symbols';
-import { AllowedNames, Callback, ITransition, Subscribers } from './types';
+import { AllowedNames, Callback, Transition, Subscribers } from './types';
 
 type States<
   State extends AllowedNames | Array<AllowedNames>,
@@ -10,27 +10,27 @@ type States<
   [key in State extends Array<AllowedNames> ? never : State]?: NestedState;
 };
 
-export interface IStateMachineParameters<
+export interface StateMachineParameters<
   State extends AllowedNames | Array<AllowedNames>,
   Event extends AllowedNames,
   Context extends object = object,
-  Transition extends ITransition<State, Event, Context> = ITransition<
+  _Transition extends Transition<State, Event, Context> = Transition<
     State,
     Event,
     Context
   >,
-  Transitions extends [Transition, ...Array<Transition>] = [
-    Transition,
-    ...Array<Transition>,
+  Transitions extends [_Transition, ...Array<_Transition>] = [
+    _Transition,
+    ...Array<_Transition>,
   ],
   NestedState extends _NestedState<any> = _NestedState<any>,
 > {
   readonly ctx?: (
-    parameters: IStateMachineParameters<
+    parameters: StateMachineParameters<
       State,
       Event,
       Context,
-      Transition,
+      _Transition,
       Transitions
     >,
   ) => Context | Promise<Context>;
@@ -39,11 +39,11 @@ export interface IStateMachineParameters<
   readonly id?: string;
   readonly subscribers?: Subscribers<Event, Context>;
   readonly states?: (
-    parameters: IStateMachineParameters<
+    parameters: StateMachineParameters<
       State,
       Event,
       Context,
-      Transition,
+      _Transition,
       Transitions
     >,
   ) => States<State, NestedState>;
@@ -88,7 +88,7 @@ export type StateMachineConstructor = {
     Event extends AllowedNames,
     Context extends object,
   >(
-    parameters: IStateMachineParameters<State, Event, Context>,
+    parameters: StateMachineParameters<State, Event, Context>,
   ): IStateMachine<State, Event, Context>;
 };
 
@@ -96,8 +96,8 @@ interface IInternalTransition<
   State extends AllowedNames,
   Event extends AllowedNames,
   Context extends object,
-> extends ITransition<State, Event, Context> {
-  _original: ITransition<State, Event, Context>;
+> extends Transition<State, Event, Context> {
+  _original: Transition<State, Event, Context>;
 }
 
 const IdentityEvent = Symbol('IdentityEvent') as any;
@@ -139,7 +139,7 @@ export class _StateMachine<
   const Event extends AllowedNames,
   Context extends object,
 > {
-  private _last: ITransition<State, Event, Context>;
+  private _last: Transition<State, Event, Context>;
   private _id: string;
   private _ctx: Context;
   private _boundTo: any = this;
@@ -170,9 +170,9 @@ export class _StateMachine<
     Map<Callback<Context>, Callback<Context>>
   >();
 
-  private _initialParameters: IStateMachineParameters<State, Event, Context>;
+  private _initialParameters: StateMachineParameters<State, Event, Context>;
 
-  constructor(parameters: IStateMachineParameters<State, Event, Context>) {
+  constructor(parameters: StateMachineParameters<State, Event, Context>) {
     this._initialParameters = parameters;
     this._id = parameters.id ?? 'fsm';
     this._last = identityTransition(parameters.initial);
@@ -242,7 +242,7 @@ export class _StateMachine<
   public addTransition<
     NewState extends AllowedNames,
     NewEvent extends AllowedNames,
-  >(transition: ITransition<NewState, NewEvent, Context>) {
+  >(transition: Transition<NewState, NewEvent, Context>) {
     const { from, event, to } = transition as any;
 
     const states = Array.isArray(from) ? [...from, to] : [from, to];
@@ -560,7 +560,7 @@ export class _StateMachine<
     return _subscribers;
   }
 
-  private addEvent(transition: ITransition<State, Event, Context>) {
+  private addEvent(transition: Transition<State, Event, Context>) {
     const { from, event, to } = transition;
     const froms = Array.isArray(from) ? from : [from];
 
@@ -573,9 +573,7 @@ export class _StateMachine<
     }
   }
 
-  private prepareEvents(
-    transitions: Array<ITransition<State, Event, Context>>,
-  ) {
+  private prepareEvents(transitions: Array<Transition<State, Event, Context>>) {
     return transitions.reduce((accumulator, transition) => {
       const { from, event, to } = transition;
       const froms = Array.isArray(from) ? from : [from];
@@ -593,7 +591,7 @@ export class _StateMachine<
   }
 
   private prepareTransitions(
-    transitions: Array<ITransition<State, Event, Context>>,
+    transitions: Array<Transition<State, Event, Context>>,
   ) {
     return transitions.reduce((accumulator, transition) => {
       const { from, event } = transition;
@@ -638,7 +636,7 @@ export class _StateMachine<
   }
 
   private populateEventMethods(
-    parameters: IStateMachineParameters<State, Event, Context>,
+    parameters: StateMachineParameters<State, Event, Context>,
   ) {
     const nestedEvents = Object.values(this._states ?? {}).flatMap(
       (nested: any) => {
@@ -671,7 +669,7 @@ export class _StateMachine<
   }
 
   private populateCheckers(
-    parameters: IStateMachineParameters<State, Event, Context>,
+    parameters: StateMachineParameters<State, Event, Context>,
   ) {
     const nestedStates = Object.values(this._states ?? {}).flatMap(
       (nested: any) => {
@@ -698,7 +696,7 @@ export class _StateMachine<
    * This method binds the callbacks of the transition to the state machine instance.
    * It useful in case if we need to access the state machine instance from the callbacks.
    */
-  private bindToCallbacks(transition: ITransition<State, Event, Context>) {
+  private bindToCallbacks(transition: Transition<State, Event, Context>) {
     return {
       ...transition,
       onLeave: transition.onLeave?.bind(this._boundTo),
@@ -709,7 +707,7 @@ export class _StateMachine<
     };
   }
 
-  private makeTransition(transition: ITransition<State, Event, Context>) {
+  private makeTransition(transition: Transition<State, Event, Context>) {
     this._last = transition ?? this._last;
 
     if (!this._states) {
@@ -742,7 +740,7 @@ export class _StateMachine<
 
   private async executeTransition<
     Arguments extends Array<unknown> = Array<unknown>,
-  >(transition: ITransition<State, Event, Context>, ...arguments_: Arguments) {
+  >(transition: Transition<State, Event, Context>, ...arguments_: Arguments) {
     const { from, to, onEnter, onExit, event } = transition ?? {};
 
     const subscribers = this._subscribers.get(event);
@@ -822,7 +820,7 @@ export const StateMachine = function <
   Context extends object,
 >(
   this: _StateMachine<State, Event, Context>,
-  parameters: IStateMachineParameters<State, Event, Context>,
+  parameters: StateMachineParameters<State, Event, Context>,
 ) {
   return new _StateMachine(parameters);
 } as unknown as StateMachineConstructor;

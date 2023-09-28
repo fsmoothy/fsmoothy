@@ -1,4 +1,4 @@
-import { IStateMachineParameters, StateMachine, _StateMachine } from './fsm';
+import { StateMachineParameters, StateMachine, _StateMachine } from './fsm';
 import { AllowedNames } from './types';
 
 export type HistoryTypes = 'none' | 'deep';
@@ -31,7 +31,7 @@ export function nested<
   const Event extends AllowedNames,
   Context extends object,
 >(
-  machineParameters: IStateMachineParameters<State, Event, Context>,
+  machineParameters: StateMachineParameters<State, Event, Context>,
   { history = 'deep' }: INestedOptions = {},
 ): NestedState<any> {
   return {
