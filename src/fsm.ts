@@ -1,13 +1,15 @@
 import { StateMachineError } from './fsm.error';
-import { NestedState as _NestedState } from './nested';
+import {
+  NestedState as _NestedState,
+  ParallelState as _ParallelState,
+} from './nested';
 import { All } from './symbols';
 import { AllowedNames, Callback, Transition, Subscribers } from './types';
 
-type States<
-  State extends AllowedNames | Array<AllowedNames>,
-  NestedState extends _NestedState<any> = _NestedState<any>,
-> = {
-  [key in State extends Array<AllowedNames> ? never : State]?: NestedState;
+type Nested = _NestedState<any> | _ParallelState<any>;
+
+type States<State extends AllowedNames | Array<AllowedNames>> = {
+  [key in State extends Array<AllowedNames> ? never : State]?: Nested;
 };
 
 export interface StateMachineParameters<
@@ -23,7 +25,6 @@ export interface StateMachineParameters<
     _Transition,
     ...Array<_Transition>,
   ],
-  NestedState extends _NestedState<any> = _NestedState<any>,
 > {
   readonly ctx?: (
     parameters: StateMachineParameters<
@@ -46,7 +47,7 @@ export interface StateMachineParameters<
       _Transition,
       Transitions
     >,
-  ) => States<State, NestedState>;
+  ) => States<State>;
 }
 
 type StateMachineEvents<Event extends AllowedNames> = {
@@ -151,6 +152,7 @@ export class _StateMachine<
   private _activeChild: _NestedState<
     _StateMachine<AllowedNames, AllowedNames, object>
   > | null = null;
+  private _activeParallelState: _ParallelState<any> | null = null;
   private _states: States<State>;
 
   /**
@@ -280,7 +282,11 @@ export class _StateMachine<
    * @param state - State to add.
    * @param nestedState - Nested state machine.
    */
-  public addNestedMachine(state: State, nestedState: _NestedState<any>) {
+  public addNestedMachine(state: State, nestedState: Nested) {
+    if (nestedState.type === 'parallel') {
+      return;
+    }
+
     this._states[state as keyof typeof this._states] = nestedState;
 
     const nestedEvents = nestedState.machine.events;
@@ -431,8 +437,7 @@ export class _StateMachine<
     ...arguments_: Arguments
   ): Promise<this> {
     // check nested state machine
-    if (await this._activeChild?.machine?.can(event, ...arguments_)) {
-      await this._activeChild?.machine?.transition(event, ...arguments_);
+    if (await this.makeNestedTransition(event, ...arguments_)) {
       return this;
     }
     // propagate to parent
@@ -484,6 +489,29 @@ export class _StateMachine<
     this._boundTo = _this;
 
     return this;
+  }
+
+  private async makeNestedTransition(
+    event: Event,
+    ...arguments_: Array<unknown>
+  ) {
+    let hasExecuted = false;
+
+    if (!this._activeChild && !this._activeParallelState) {
+      return hasExecuted;
+    }
+
+    const children = this._activeParallelState?.machines ?? [this._activeChild];
+
+    for (const child of children) {
+      if (await child.machine.can(event, ...arguments_)) {
+        await child.machine.transition(event, ...arguments_);
+        this._activeChild = child;
+        hasExecuted = true;
+      }
+    }
+
+    return hasExecuted;
   }
 
   private async getAllowedTransition(
@@ -638,15 +666,19 @@ export class _StateMachine<
   private populateEventMethods(
     parameters: StateMachineParameters<State, Event, Context>,
   ) {
-    const nestedEvents = Object.values(this._states ?? {}).flatMap(
-      (nested: any) => {
-        return nested.machine.events;
-      },
-    );
-    const events = [
+    const nestedEvents = Object.values(this._states).flatMap((nested) => {
+      const _nested = nested as Nested;
+      if (_nested.type === 'parallel') {
+        return _nested.machines.flatMap((m) => m.machine.events);
+      }
+
+      return _nested.machine.events;
+    });
+
+    const events = new Set([
       ...parameters.transitions.map((t) => t.event),
       ...nestedEvents,
-    ];
+    ]);
 
     for (const event of events) {
       if (SpecialSymbols.has(event)) {
@@ -671,17 +703,20 @@ export class _StateMachine<
   private populateCheckers(
     parameters: StateMachineParameters<State, Event, Context>,
   ) {
-    const nestedStates = Object.values(this._states ?? {}).flatMap(
-      (nested: any) => {
-        return nested.machine.states;
-      },
-    );
+    const nestedStates = Object.values(this._states ?? {}).flatMap((nested) => {
+      const _nested = nested as Nested;
+      if (_nested.type === 'parallel') {
+        return _nested.machines.flatMap((m) => m.machine.states);
+      }
 
-    const states = [
+      return _nested.machine.states;
+    });
+
+    const states = new Set([
       ...parameters.transitions.map((t) => t.from),
       ...parameters.transitions.map((t) => t.to),
       ...nestedStates,
-    ];
+    ]);
 
     for (const state of states) {
       if (SpecialSymbols.has(state)) {
@@ -707,21 +742,32 @@ export class _StateMachine<
     };
   }
 
-  private makeTransition(transition: Transition<State, Event, Context>) {
-    this._last = transition ?? this._last;
-
+  private switchNestedState(transition: Transition<State, Event, Context>) {
     if (!this._states) {
       return;
     }
 
     if (!(transition.to in this._states)) {
       this._activeChild = null;
+      this._activeParallelState = null;
       return;
     }
 
-    const child = this._states[transition.to] as _NestedState<
-      _StateMachine<AllowedNames, AllowedNames, object>
-    >;
+    let child = this._states[transition.to as keyof typeof this._states];
+
+    if (!child) {
+      return;
+    }
+
+    if (child.type === 'parallel') {
+      this._activeParallelState = child;
+
+      child = child.machines[0];
+    }
+
+    if (!child || child.type === 'parallel') {
+      return;
+    }
 
     switch (child.history) {
       case 'none': {
@@ -738,6 +784,10 @@ export class _StateMachine<
     }
   }
 
+  private makeTransition(transition: Transition<State, Event, Context>) {
+    this._last = transition ?? this._last;
+  }
+
   private async executeTransition<
     Arguments extends Array<unknown> = Array<unknown>,
   >(transition: Transition<State, Event, Context>, ...arguments_: Arguments) {
@@ -750,6 +800,7 @@ export class _StateMachine<
       await this._last.onLeave?.(this._ctx, ...arguments_);
       await onEnter?.(this._ctx, ...arguments_);
       this.makeTransition(transition);
+      this.switchNestedState(transition);
 
       for (const subscriber of subscribers?.values() ?? []) {
         await subscriber(this._ctx, ...arguments_);

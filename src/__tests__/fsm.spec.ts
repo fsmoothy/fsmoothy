@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { StateMachine } from '../fsm';
-import { nested } from '../nested';
+import { nested, parallel } from '../nested';
 import { All } from '../symbols';
 import { t } from '../transition';
 
@@ -594,12 +594,10 @@ describe('StateMachine', () => {
         // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
         handlerContext = this;
       });
+      type States = State | NestedStates;
+      type Events = Event | NestedEvents;
 
-      const fsm = new StateMachine<
-        State | NestedStates,
-        Event | NestedEvents,
-        { test: string }
-      >({
+      const fsm = new StateMachine<States, Events, { test: string }>({
         id: 'fsm',
         initial: State.green,
         ctx: () => ({ test: 'bar' }),
@@ -687,6 +685,103 @@ describe('StateMachine', () => {
 
       await fsm.next();
       expect(fsm.is(State.green)).toBe(true);
+    });
+  });
+
+  describe('parallel', () => {
+    it('should make transition in all nested FSMs one by one', async () => {
+      enum NestedStates {
+        walk = 'walk',
+        dontWalk = 'dontWalk',
+      }
+
+      enum NestedEvents {
+        toggle = 'toggle',
+      }
+
+      enum State {
+        green = 'green',
+        yellow = 'yellow',
+        red = 'red',
+      }
+
+      enum Event {
+        next = 'next',
+      }
+
+      let count = 0;
+
+      const fsm = new StateMachine<
+        State | NestedStates,
+        Event | NestedEvents,
+        never
+      >({
+        id: 'fsm',
+        initial: State.green,
+        transitions: [
+          t(State.green, Event.next, State.yellow),
+          t(State.yellow, Event.next, State.red),
+          t(State.red, Event.next, State.green),
+        ],
+        states: () => ({
+          [State.red]: parallel(
+            nested({
+              id: 'nested-fsm',
+              initial: NestedStates.dontWalk,
+              transitions: [
+                t(
+                  NestedStates.dontWalk,
+                  NestedEvents.toggle,
+                  NestedStates.walk,
+                  {
+                    onEnter() {
+                      count += 1;
+                    },
+                  },
+                ),
+              ],
+            }),
+            nested({
+              id: 'nested-fsm2',
+              initial: NestedStates.dontWalk,
+              transitions: [
+                t(
+                  NestedStates.dontWalk,
+                  NestedEvents.toggle,
+                  NestedStates.walk,
+                  {
+                    onEnter() {
+                      count += 2;
+                    },
+                  },
+                ),
+              ],
+            }),
+            nested({
+              id: 'nested-fsm3',
+              initial: State.red,
+              transitions: [t(State.red, Event.next, State.yellow)],
+            }),
+          ),
+        }),
+      });
+
+      await fsm.next();
+      await fsm.next();
+      expect(fsm.is(State.red)).toBe(true);
+
+      await fsm.toggle();
+      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.child.is(NestedStates.walk)).toBe(true);
+
+      await fsm.next();
+      expect(fsm.child.is(State.yellow)).toBe(true);
+
+      await fsm.next();
+      expect(fsm.is(State.green)).toBe(true);
+      expect(fsm.child.is(NestedStates.walk)).toBe(false);
+
+      expect(count).toBe(3);
     });
   });
 

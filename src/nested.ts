@@ -3,17 +3,22 @@ import { AllowedNames } from './types';
 
 export type HistoryTypes = 'none' | 'deep';
 
-export type NestedState<
+export interface NestedState<
   NestedStatedStateMachine extends _StateMachine<
     AllowedNames,
     AllowedNames,
     object
   >,
-> = {
+> {
   type: 'nested';
   machine: NestedStatedStateMachine;
   history: HistoryTypes;
-};
+}
+
+export interface ParallelState<_NestedState extends NestedState<any>> {
+  type: 'parallel';
+  machines: Array<_NestedState>;
+}
 
 export interface INestedOptions {
   history?: HistoryTypes;
@@ -38,5 +43,14 @@ export function nested<
     type: 'nested',
     machine: new StateMachine(machineParameters),
     history,
+  };
+}
+
+export function parallel(
+  ...nested: Array<NestedState<any>>
+): ParallelState<NestedState<any>> {
+  return {
+    type: 'parallel',
+    machines: nested,
   };
 }
