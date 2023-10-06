@@ -87,7 +87,7 @@ export type StateMachineConstructor = {
   new <
     State extends AllowedNames,
     Event extends AllowedNames,
-    Context extends object,
+    Context extends object = never,
   >(
     parameters: StateMachineParameters<State, Event, Context>,
   ): IStateMachine<State, Event, Context>;
@@ -295,9 +295,9 @@ export class _StateMachine<
       this.addEventMethods(event);
     }
 
-    const NestedStates = nestedState.machine.states;
+    const nestedStates = nestedState.machine.states;
 
-    for (const nestedState of Object.keys(NestedStates)) {
+    for (const nestedState of nestedStates) {
       this.addIsChecker(nestedState as State);
     }
 
@@ -868,7 +868,7 @@ export class _StateMachine<
 export const StateMachine = function <
   const State extends AllowedNames,
   const Event extends AllowedNames,
-  Context extends object,
+  Context extends object = never,
 >(
   this: _StateMachine<State, Event, Context>,
   parameters: StateMachineParameters<State, Event, Context>,
