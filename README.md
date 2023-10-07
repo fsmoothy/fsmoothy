@@ -73,9 +73,9 @@ import { StateMachine, t } from 'fsmoothy';
 const orderItemFSM = new StateMachine({
   id: 'orderItemsStatus',
   initial: OrderItemState.draft,
-  ctx: {
+  data: () => ({
     place: 'My warehouse',
-  },
+  }),
   transitions: [
     t(OrderItemState.draft, OrderItemEvent.create, OrderItemState.assembly),
     t(
@@ -116,7 +116,7 @@ Let's take a look at the `IStateMachineParameters<State, Event, Context>` interf
 
 - `id` - a unique identifier for the state machine (used for debugging purposes)
 - `initial` - the initial state of the state machine
-- `ctx` - initializer for initial context of the state machine (it can return a promise, if so the context will be initialized after first transition)
+- `data` - initializer for initial data of the state machine (it can return a promise, if so the data will be initialized after first transition)
 - `transitions` - an array of transitions
 - `subscribers` - an object with subscribers array for events
 - `states` - a fabric function that returns an object with nested state machines
@@ -174,7 +174,7 @@ We can use the `guard` function to make a transition conditional.
 ```typescript
 const stateMachine = new StateMachine<State, Event, { foo: string }>({
   initial: State.idle,
-  ctx: () => ({ foo: 'bar' }),
+  data: () => ({ foo: 'bar' }),
   transitions: [
     t(State.idle, Event.fetch, State.pending, {
       guard: (context) => context.foo === 'bar',
