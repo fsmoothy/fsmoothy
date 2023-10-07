@@ -1,6 +1,6 @@
-import { AllowedNames, Callback, Guard, Transition } from './types';
+import { AllowedNames, Callback, Guard, Transition, FsmContext } from './types';
 
-interface TransitionOptions<Context extends object> {
+interface TransitionOptions<Context extends FsmContext<object>> {
   onExit?: Callback<Context>;
   onEnter?: Callback<Context>;
   onLeave?: Callback<Context>;
@@ -29,7 +29,7 @@ function _noop() {
 export function t<
   State extends AllowedNames,
   Event extends AllowedNames,
-  Context extends object,
+  Context extends FsmContext<object>,
 >(
   from: Array<State> | State,
   event: Event,

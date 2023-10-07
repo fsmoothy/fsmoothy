@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { StateMachine, StateMachineParameters, t } from '../..';
+import { FsmContext, StateMachine, t } from '../..';
 
 enum State {
   Idle = 'idle',
@@ -21,60 +21,63 @@ interface IVendingMachineContext {
   depositedCoins: number;
 }
 
-const vendingMachineStateMachineParameters: StateMachineParameters<
+class VendingMachine extends StateMachine<
   State,
   Event,
-  IVendingMachineContext
-> = {
-  initial: State.Idle,
-  ctx: () => ({
-    products: new Map([
-      [1, { name: 'Coke', price: 100 }],
-      [2, { name: 'Pepsi', price: 100 }],
-      [3, { name: 'Fanta', price: 100 }],
-    ]),
-    selectedProductId: null,
-    depositedCoins: 0,
-  }),
-  transitions: [
-    t(State.Idle, Event.SelectProduct, State.ProductSelected, {
-      onEnter(context, productId: number) {
-        context.selectedProductId = productId;
-      },
-    }),
-    t(State.Idle, Event.DepositCoin, State.Idle, {
-      onEnter(context, coin: number) {
-        context.depositedCoins += coin;
-      },
-    }),
-    t(State.ProductSelected, Event.DepositCoin, State.ProductSelected, {
-      onEnter(context, coin: number) {
-        context.depositedCoins += coin;
-      },
-    }),
-    t(State.ProductSelected, Event.ConfirmPurchase, State.Dispensing, {
-      onExit(context) {
-        context.depositedCoins -=
-          context.products.get(context.selectedProductId!)?.price ?? 0;
-      },
-      guard(context) {
-        return Boolean(
-          context.selectedProductId &&
-            context.depositedCoins >=
-              (context.products.get(context.selectedProductId)?.price ?? 0),
-        );
-      },
-    }),
-    t(State.Dispensing, Event.Reset, State.Idle),
-  ],
-};
-
-const createVendingMachineStateMachine = () =>
-  new StateMachine(vendingMachineStateMachineParameters);
+  FsmContext<IVendingMachineContext>
+> {
+  constructor() {
+    super({
+      initial: State.Idle,
+      data: () => ({
+        products: new Map([
+          [1, { name: 'Coke', price: 100 }],
+          [2, { name: 'Pepsi', price: 100 }],
+          [3, { name: 'Fanta', price: 100 }],
+        ]),
+        selectedProductId: null,
+        depositedCoins: 0,
+      }),
+      transitions: [
+        t(State.Idle, Event.SelectProduct, State.ProductSelected, {
+          onEnter(context, productId: number) {
+            context.data.selectedProductId = productId;
+          },
+        }),
+        t(State.Idle, Event.DepositCoin, State.Idle, {
+          onEnter(context, coin: number) {
+            context.data.depositedCoins += coin;
+          },
+        }),
+        t(State.ProductSelected, Event.DepositCoin, State.ProductSelected, {
+          onEnter(context, coin: number) {
+            context.data.depositedCoins += coin;
+          },
+        }),
+        t(State.ProductSelected, Event.ConfirmPurchase, State.Dispensing, {
+          onExit(context) {
+            context.data.depositedCoins -=
+              context.data.products.get(context.data.selectedProductId!)
+                ?.price ?? 0;
+          },
+          guard(context) {
+            return Boolean(
+              context.data.selectedProductId &&
+                context.data.depositedCoins >=
+                  (context.data.products.get(context.data.selectedProductId)
+                    ?.price ?? 0),
+            );
+          },
+        }),
+        t(State.Dispensing, Event.Reset, State.Idle),
+      ],
+    });
+  }
+}
 
 describe('Vending Machine', () => {
   it('should dispense product when enough coins are deposited', async () => {
-    const vendingMachineStateMachine = createVendingMachineStateMachine();
+    const vendingMachineStateMachine = new VendingMachine();
 
     expect(vendingMachineStateMachine.isIdle()).toBeTruthy();
 

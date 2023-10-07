@@ -6,6 +6,7 @@ import { All } from '../symbols';
 import { t } from '../transition';
 
 import { isStateMachineError } from './../fsm.error';
+import { FsmContext } from './../types';
 
 enum State {
   idle = 'idle',
@@ -54,7 +55,7 @@ describe('StateMachine', () => {
   it('should be possible to define async initialization for context', async () => {
     const stateMachine = new StateMachine({
       initial: State.idle,
-      ctx: () => Promise.resolve({ foo: 'bar' }),
+      data: () => Promise.resolve({ foo: 'bar' }),
       transitions: [
         t(State.idle, Event.fetch, State.pending),
         t(State.pending, Event.resolve, State.idle),
@@ -62,7 +63,7 @@ describe('StateMachine', () => {
     });
 
     await stateMachine.fetch();
-    expect(stateMachine.context).toEqual({ foo: 'bar' });
+    expect(stateMachine.data).toEqual({ foo: 'bar' });
   });
 
   describe('transition', () => {
@@ -83,7 +84,7 @@ describe('StateMachine', () => {
 
       const stateMachine = new StateMachine({
         initial: State.idle,
-        ctx: () => ({ foo: 'bar' }),
+        data: () => ({ foo: 'bar' }),
         transitions: [
           {
             from: State.idle,
@@ -100,7 +101,7 @@ describe('StateMachine', () => {
       await stateMachine.transition(Event.fetch, 'test');
       expect(handler).toHaveBeenCalledTimes(2);
       expect(handler).toHaveBeenCalledWith(
-        expect.objectContaining({ foo: 'bar' }),
+        expect.objectContaining({ data: { foo: 'bar' } }),
         'test',
       );
       expect(handlerContext).toBe(stateMachine);
@@ -120,13 +121,17 @@ describe('StateMachine', () => {
     it('should be able to add transition after initialization', async () => {
       const callback = vi.fn();
 
-      const stateMachine = new StateMachine({
+      const stateMachine = new StateMachine<
+        State,
+        Event,
+        FsmContext<{ n: number }>
+      >({
         initial: State.idle,
-        ctx: () => ({ n: 1 }),
+        data: () => ({ n: 1 }),
         transitions: [
           t(State.idle, Event.fetch, State.pending, {
-            onExit(context: { n: number }) {
-              context.n += 1;
+            onExit(context) {
+              context.data.n += 1;
             },
           }),
           {
@@ -137,16 +142,13 @@ describe('StateMachine', () => {
               return true;
             },
             onEnter(context) {
-              context.n += 1;
+              context.data.n += 1;
             },
           },
         ],
       }).on(Event.resolve, callback);
 
       await stateMachine.fetch();
-
-      // @ts-expect-error - we should not be able to check type in old state machine
-      stateMachine.is(State.rejected);
 
       const _stateMachine = stateMachine
         .addTransition(t(State.pending, Event.reject, State.rejected))
@@ -158,7 +160,7 @@ describe('StateMachine', () => {
 
       await _stateMachine.resolve();
       expect(_stateMachine.isResolved()).toBe(true);
-      expect(_stateMachine.context).toEqual({ n: 3 });
+      expect(_stateMachine.data).toEqual({ n: 3 });
       expect(callback).toHaveBeenCalledTimes(1);
 
       await _stateMachine.reset();
@@ -206,7 +208,7 @@ describe('StateMachine', () => {
     });
 
     it('should be able to make transition from All states', async () => {
-      const stateMachine = new StateMachine<State, Event, object>({
+      const stateMachine = new StateMachine<State, Event>({
         initial: State.idle,
         transitions: [
           t(All, Event.reset, State.idle),
@@ -232,16 +234,26 @@ describe('StateMachine', () => {
     });
 
     it('should be able to define conditional transitions', async () => {
-      const stateMachine = new StateMachine<State, Event, { foo: string }>({
+      const stateMachine = new StateMachine<
+        State,
+        Event,
+        FsmContext<{ foo: string }>
+      >({
         initial: State.idle,
-        ctx: () => ({ foo: 'bar' }),
+        data: () => ({ foo: 'bar' }),
         transitions: [
-          t(State.idle, Event.fetch, State.pending, {
-            guard: (context) => context.foo === 'bar',
-          }),
-          t(State.idle, Event.fetch, State.resolved, {
-            guard: (context) => context.foo === 'foo',
-          }),
+          t(
+            State.idle,
+            Event.fetch,
+            State.pending,
+            (context) => context.data.foo === 'bar',
+          ),
+          t(
+            State.idle,
+            Event.fetch,
+            State.resolved,
+            (context) => context.data.foo === 'foo',
+          ),
           t(All, Event.reset, State.idle),
         ],
       });
@@ -250,7 +262,7 @@ describe('StateMachine', () => {
       expect(stateMachine.isPending()).toBe(true);
 
       await stateMachine.reset();
-      stateMachine.context.foo = 'foo';
+      stateMachine.data.foo = 'foo';
       await stateMachine.fetch();
       expect(stateMachine.isResolved()).toBe(true);
     });
@@ -351,7 +363,7 @@ describe('StateMachine', () => {
 
       const stateMachine = new StateMachine({
         initial: State.idle,
-        ctx: () => ({ foo: 'bar' }),
+        data: () => ({ foo: 'bar' }),
         transitions: [t(State.idle, Event.fetch, State.pending)],
         subscribers: {
           [Event.fetch]: [callback],
@@ -360,7 +372,7 @@ describe('StateMachine', () => {
 
       await stateMachine.fetch();
       expect(callback).toHaveBeenCalledTimes(1);
-      expect(callback).toHaveBeenCalledWith(stateMachine.context);
+      expect(callback).toHaveBeenCalledWith({ data: stateMachine.data });
       expect(handlerContext).toBe(stateMachine);
     });
 
@@ -433,11 +445,11 @@ describe('StateMachine', () => {
       const fsm = new StateMachine<
         State | NestedStates,
         Event | NestedEvents,
-        { test: string }
+        FsmContext<{ test: string }>
       >({
         id: 'fsm',
         initial: State.green,
-        ctx: () => ({ test: 'bar' }),
+        data: () => ({ test: 'bar' }),
         transitions: [
           t(State.green, Event.next, State.yellow),
           t(State.yellow, Event.next, State.red),
@@ -471,28 +483,32 @@ describe('StateMachine', () => {
       const fsm = new StateMachine<
         State | NestedStates,
         Event | NestedEvents,
-        { test: string }
+        FsmContext<{ test: string }>
       >({
         id: 'fsm',
         initial: State.green,
-        ctx: () => ({ test: 'bar' }),
+        data: () => ({ test: 'bar' }),
         transitions: [
           t(State.green, Event.next, State.yellow),
           t(State.yellow, Event.next, State.red),
           t(State.red, Event.next, State.green),
         ],
         states: () => ({
-          [State.red]: nested({
+          [State.red]: nested<
+            NestedStates,
+            NestedEvents,
+            FsmContext<{ test: string }>
+          >({
             id: 'nested-fsm',
             initial: NestedStates.dontWalk,
             transitions: [
               t(NestedStates.dontWalk, NestedEvents.toggle, NestedStates.walk),
             ],
-            ctx: () => ({ test: 'foo' }),
+            data: () => ({ test: 'foo' }),
             subscribers: {
               [NestedEvents.toggle]: [
                 (context) => {
-                  context.test = 'foo';
+                  context.data.test = 'foo';
                 },
               ],
             },
@@ -507,38 +523,42 @@ describe('StateMachine', () => {
       await fsm.toggle();
       expect(fsm.is(State.red)).toBe(true);
       expect(fsm.child.is(NestedStates.walk)).toBe(true);
-      expect(fsm.child.context).toEqual({ test: 'foo' });
+      expect(fsm.child.data).toEqual({ test: 'foo' });
 
       await fsm.next();
       expect(fsm.is(State.green)).toBe(true);
       expect(fsm.child.is(NestedStates.walk)).toBe(false);
-      expect(fsm.child.context).toEqual({ test: 'bar' });
+      expect(fsm.child.data).toEqual({ test: 'bar' });
 
       await fsm.next();
       await fsm.next();
       expect(fsm.is(State.red)).toBe(true);
-      expect(fsm.child.context).toEqual({ test: 'foo' });
+      expect(fsm.child.data).toEqual({ test: 'foo' });
     });
 
     it('should not save nested FSM context if history is none', async () => {
-      interface Context {
+      interface Payload {
         test: string;
       }
       const fsm = new StateMachine<
         State | NestedStates,
         Event | NestedEvents,
-        Context
+        FsmContext<Payload>
       >({
         id: 'fsm',
         initial: State.green,
-        ctx: () => ({ test: 'bar' }),
+        data: () => ({ test: 'bar' }),
         transitions: [
           t(State.green, Event.next, State.yellow),
           t(State.yellow, Event.next, State.red),
           t(State.red, Event.next, State.green),
         ],
         states: () => ({
-          [State.red]: nested(
+          [State.red]: nested<
+            NestedStates,
+            NestedEvents,
+            FsmContext<{ test: string }>
+          >(
             {
               id: 'nested-fsm',
               initial: NestedStates.dontWalk,
@@ -549,11 +569,11 @@ describe('StateMachine', () => {
                   NestedStates.walk,
                 ),
               ],
-              ctx: () => ({ test: 'bar' }),
+              data: () => ({ test: 'bar' }),
               subscribers: {
                 [NestedEvents.toggle]: [
                   (context) => {
-                    context.test = 'foo';
+                    context.data.test = 'foo';
                   },
                 ],
               },
@@ -570,17 +590,17 @@ describe('StateMachine', () => {
       await fsm.toggle();
       expect(fsm.is(State.red)).toBe(true);
       expect(fsm.child.is(NestedStates.walk)).toBe(true);
-      expect(fsm.child.context).toEqual({ test: 'foo' });
+      expect(fsm.child.data).toEqual({ test: 'foo' });
 
       await fsm.next();
       expect(fsm.is(State.green)).toBe(true);
       expect(fsm.child.is(NestedStates.walk)).toBe(false);
-      expect(fsm.child.context).toEqual({ test: 'bar' });
+      expect(fsm.child.data).toEqual({ test: 'bar' });
 
       await fsm.next();
       await fsm.next();
       expect(fsm.is(State.red)).toBe(true);
-      expect(fsm.child.context).toEqual({ test: 'bar' });
+      expect(fsm.child.data).toEqual({ test: 'bar' });
     });
 
     it('should trigger subscribers on nested effects and transitions', async () => {
@@ -597,10 +617,14 @@ describe('StateMachine', () => {
       type States = State | NestedStates;
       type Events = Event | NestedEvents;
 
-      const fsm = new StateMachine<States, Events, { test: string }>({
+      const fsm = new StateMachine<
+        States,
+        Events,
+        FsmContext<{ test: string }>
+      >({
         id: 'fsm',
         initial: State.green,
-        ctx: () => ({ test: 'bar' }),
+        data: () => ({ test: 'bar' }),
         transitions: [
           t(State.green, Event.next, State.yellow),
           t(State.yellow, Event.next, State.red),
@@ -613,7 +637,7 @@ describe('StateMachine', () => {
             transitions: [
               t(NestedStates.dontWalk, NestedEvents.toggle, NestedStates.walk),
             ],
-            ctx: () => ({ test: 'foo' }),
+            data: () => ({ test: 'foo' }),
             subscribers: {
               [NestedEvents.toggle]: [nestedCallback],
             },
@@ -631,21 +655,21 @@ describe('StateMachine', () => {
       await fsm.toggle();
       expect(fsm.is(State.red)).toBe(true);
       expect(fsm.child.is(NestedStates.walk)).toBe(true);
-      expect(fsm.child.context).toEqual({ test: 'foo' });
+      expect(fsm.child.data).toEqual({ test: 'foo' });
 
       await fsm.next();
       expect(fsm.is(State.green)).toBe(true);
       expect(fsm.child.is(NestedStates.walk)).toBe(false);
-      expect(fsm.child.context).toEqual({ test: 'bar' });
+      expect(fsm.child.data).toEqual({ test: 'bar' });
 
       await fsm.next();
       await fsm.next();
       expect(fsm.is(State.red)).toBe(true);
-      expect(fsm.child.context).toEqual({ test: 'foo' });
+      expect(fsm.child.data).toEqual({ test: 'foo' });
 
       expect(callback).toHaveBeenCalledTimes(5);
       expect(nestedCallback).toHaveBeenCalledTimes(1);
-      expect(nestedCallback).toHaveBeenCalledWith(fsm.child.context);
+      expect(nestedCallback).toHaveBeenCalledWith({ data: fsm.child.data });
       expect(handlerContext).toBe(fsm.child);
     });
 
@@ -804,7 +828,7 @@ describe('StateMachine', () => {
 
       const stateMachine = new StateMachine({
         initial: State.idle,
-        ctx: () => ({ foo: 'bar' }),
+        data: () => ({ foo: 'bar' }),
         transitions: [
           t(State.idle, Event.fetch, State.pending),
           t(All, Event.resolve, State.idle, { onExit: callback }),
@@ -843,9 +867,13 @@ describe('StateMachine', () => {
         onExitCallbackContext = this;
       });
 
-      const stateMachine = new StateMachine<State, Event, { foo: string }>({
+      const stateMachine = new StateMachine<
+        State,
+        Event,
+        FsmContext<{ foo: string }>
+      >({
         initial: State.idle,
-        ctx: () => ({ foo: 'bar' }),
+        data: () => ({ foo: 'bar' }),
         transitions: [t(State.idle, Event.fetch, State.pending)],
       });
 

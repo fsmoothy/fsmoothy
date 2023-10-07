@@ -4,7 +4,13 @@ import {
   ParallelState as _ParallelState,
 } from './nested';
 import { All } from './symbols';
-import { AllowedNames, Callback, Transition, Subscribers } from './types';
+import {
+  AllowedNames,
+  Callback,
+  Transition,
+  Subscribers,
+  FsmContext,
+} from './types';
 
 type Nested = _NestedState<any> | _ParallelState<any>;
 
@@ -15,38 +21,20 @@ type States<State extends AllowedNames | Array<AllowedNames>> = {
 export interface StateMachineParameters<
   State extends AllowedNames | Array<AllowedNames>,
   Event extends AllowedNames,
-  Context extends object = object,
-  _Transition extends Transition<State, Event, Context> = Transition<
-    State,
-    Event,
-    Context
-  >,
-  Transitions extends [_Transition, ...Array<_Transition>] = [
-    _Transition,
-    ...Array<_Transition>,
-  ],
+  Context extends FsmContext<object> = FsmContext<object>,
 > {
-  readonly ctx?: (
-    parameters: StateMachineParameters<
-      State,
-      Event,
-      Context,
-      _Transition,
-      Transitions
-    >,
-  ) => Context | Promise<Context>;
+  readonly data?: (
+    parameters: StateMachineParameters<State, Event, Context>,
+  ) => Context['data'] | Promise<Context['data']>;
   readonly initial: State;
-  readonly transitions: Transitions;
+  readonly transitions: [
+    Transition<State, Event, Context>,
+    ...Array<Transition<State, Event, Context>>,
+  ];
   readonly id?: string;
   readonly subscribers?: Subscribers<Event, Context>;
   readonly states?: (
-    parameters: StateMachineParameters<
-      State,
-      Event,
-      Context,
-      _Transition,
-      Transitions
-    >,
+    parameters: StateMachineParameters<State, Event, Context>,
   ) => States<State>;
 }
 
@@ -77,7 +65,7 @@ type StateMachineCheckers<State extends AllowedNames> = {
 export type IStateMachine<
   State extends AllowedNames,
   Event extends AllowedNames,
-  Context extends object,
+  Context extends FsmContext<object>,
 > = _StateMachine<State, Event, Context> &
   StateMachineEvents<Event> &
   StateMachineCheckers<State> &
@@ -87,7 +75,7 @@ export type StateMachineConstructor = {
   new <
     State extends AllowedNames,
     Event extends AllowedNames,
-    Context extends object = never,
+    Context extends FsmContext<object> = FsmContext<never>,
   >(
     parameters: StateMachineParameters<State, Event, Context>,
   ): IStateMachine<State, Event, Context>;
@@ -96,7 +84,7 @@ export type StateMachineConstructor = {
 interface IInternalTransition<
   State extends AllowedNames,
   Event extends AllowedNames,
-  Context extends object,
+  Context extends FsmContext<object> = FsmContext<never>,
 > extends Transition<State, Event, Context> {
   _original: Transition<State, Event, Context>;
 }
@@ -116,7 +104,7 @@ const SpecialSymbols = new Set([All, IdentityEvent]);
 function identityTransition<
   State extends AllowedNames,
   Event extends AllowedNames,
-  Context extends object,
+  Context extends FsmContext<object> = FsmContext<never>,
 >(state: State) {
   const transition = {
     from: state,
@@ -132,25 +120,25 @@ function identityTransition<
 type TransitionsStorage<
   State extends AllowedNames,
   Event extends AllowedNames,
-  Context extends object,
+  Context extends FsmContext<object> = FsmContext<never>,
 > = Map<Event, Map<State, Array<IInternalTransition<State, Event, Context>>>>;
 
 export class _StateMachine<
   const State extends AllowedNames,
   const Event extends AllowedNames,
-  Context extends object,
+  Context extends FsmContext<object>,
 > {
   private _last: Transition<State, Event, Context>;
   private _id: string;
-  private _ctx: Context;
+  private _context = {} as Context;
   private _boundTo: any = this;
-  private _ctxPromise: Promise<Context> | null = null;
+  private _dataPromise: Promise<Context['data']> | null = null;
 
   /**
    * For nested state machines.
    */
   private _activeChild: _NestedState<
-    _StateMachine<AllowedNames, AllowedNames, object>
+    _StateMachine<AllowedNames, AllowedNames, FsmContext<object>>
   > | null = null;
   private _activeParallelState: _ParallelState<any> | null = null;
   private _states: States<State>;
@@ -172,6 +160,9 @@ export class _StateMachine<
     Map<Callback<Context>, Callback<Context>>
   >();
 
+  /**
+   * We're saving initial parameters mostly for nested states when history = none
+   */
   private _initialParameters: StateMachineParameters<State, Event, Context>;
 
   constructor(parameters: StateMachineParameters<State, Event, Context>) {
@@ -181,12 +172,12 @@ export class _StateMachine<
 
     this._states = parameters.states?.(parameters) ?? {};
 
-    const context = parameters.ctx?.(parameters) ?? ({} as Context);
-    if (context instanceof Promise) {
-      this._ctxPromise = context;
-      this._ctx = {} as Context;
+    const data = parameters.data?.(parameters) ?? {};
+    if (data instanceof Promise) {
+      this._dataPromise = data;
+      this._context.data = {};
     } else {
-      this._ctx = context;
+      this._context.data = data;
     }
 
     this._allowedNames = this.prepareEvents(parameters.transitions);
@@ -205,10 +196,10 @@ export class _StateMachine<
   }
 
   /**
-   * Context object.
+   * Data object.
    */
-  get context(): Context {
-    return this._ctx;
+  get data(): Context['data'] {
+    return this._context.data;
   }
 
   /**
@@ -332,7 +323,7 @@ export class _StateMachine<
       for (const transition of transitionsByState.get(All) ?? []) {
         const { guard = _true } = transition;
 
-        const result = await (guard?.(this._ctx, ...arguments_) ?? true);
+        const result = await (guard?.(this._context, ...arguments_) ?? true);
 
         if (result) {
           return true;
@@ -353,7 +344,7 @@ export class _StateMachine<
     for (const transition of transitions) {
       const { guard = _true } = transition;
 
-      const result = await (guard?.(this._ctx, ...arguments_) ?? true);
+      const result = await (guard?.(this._context, ...arguments_) ?? true);
 
       if (result) {
         return true;
@@ -390,7 +381,9 @@ export class _StateMachine<
     }
 
     const callbacks = this._subscribers.get(event);
-    callbacks?.set(callback!, callback!.bind(this._boundTo));
+    if (callback) {
+      callbacks?.set(callback, callback.bind(this._boundTo));
+    }
 
     return this;
   }
@@ -452,9 +445,9 @@ export class _StateMachine<
 
     const transition = (await this.getAllowedTransition(event, ...arguments_))!;
 
-    if (this._ctxPromise) {
-      this._ctx = await this._ctxPromise;
-      this._ctxPromise = null;
+    if (this._dataPromise) {
+      this._context.data = await this._dataPromise;
+      this._dataPromise = null;
     }
 
     await this.executeTransition(transition, ...arguments_);
@@ -530,7 +523,7 @@ export class _StateMachine<
       for (const t of transitions) {
         const { guard = _true } = t;
 
-        const result = await (guard?.(this._ctx, ...arguments_) ?? true);
+        const result = await (guard?.(this._context, ...arguments_) ?? true);
 
         if (result) {
           return t;
@@ -545,7 +538,7 @@ export class _StateMachine<
       for (const t of allTransitions) {
         const { guard = _true } = t;
 
-        const result = await (guard?.(this._ctx, ...arguments_) ?? true);
+        const result = await (guard?.(this._context, ...arguments_) ?? true);
 
         if (result) {
           return t;
@@ -797,20 +790,20 @@ export class _StateMachine<
     const allSubscribers = this._subscribers.get(All);
 
     try {
-      await this._last.onLeave?.(this._ctx, ...arguments_);
-      await onEnter?.(this._ctx, ...arguments_);
+      await this._last.onLeave?.(this._context, ...arguments_);
+      await onEnter?.(this._context, ...arguments_);
       this.makeTransition(transition);
       this.switchNestedState(transition);
 
       for (const subscriber of subscribers?.values() ?? []) {
-        await subscriber(this._ctx, ...arguments_);
+        await subscriber(this._context, ...arguments_);
       }
 
       for (const subscriber of allSubscribers?.values() ?? []) {
-        await subscriber(this._ctx, ...arguments_);
+        await subscriber(this._context, ...arguments_);
       }
 
-      await onExit?.(this._ctx, ...arguments_);
+      await onExit?.(this._context, ...arguments_);
     } catch (error) {
       if (error instanceof StateMachineError) {
         throw error;
@@ -865,13 +858,4 @@ export class _StateMachine<
  * @returns New state machine.
  *
  */
-export const StateMachine = function <
-  const State extends AllowedNames,
-  const Event extends AllowedNames,
-  Context extends object = never,
->(
-  this: _StateMachine<State, Event, Context>,
-  parameters: StateMachineParameters<State, Event, Context>,
-) {
-  return new _StateMachine(parameters);
-} as unknown as StateMachineConstructor;
+export const StateMachine = _StateMachine as unknown as StateMachineConstructor;

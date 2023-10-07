@@ -1,14 +1,18 @@
 export type AllowedNames = string | number;
 
+export type FsmContext<D extends object = never> = {
+  data: D;
+};
+
 export interface Callback<
-  Context extends object,
+  Context extends FsmContext<object>,
   T extends Array<any> = Array<any>,
 > {
   (context: Context, ...arguments_: T): Promise<void> | void;
 }
 
 export interface Guard<
-  Context extends object,
+  Context extends FsmContext<object>,
   T extends Array<any> = Array<any>,
 > {
   (context: Context, ...arguments_: T): Promise<boolean> | boolean;
@@ -17,7 +21,7 @@ export interface Guard<
 export interface Transition<
   State extends AllowedNames | Array<AllowedNames>,
   Event extends AllowedNames,
-  Context extends object,
+  Context extends FsmContext<object>,
 > {
   from: Array<State> | State;
   event: Event;
@@ -28,6 +32,9 @@ export interface Transition<
   guard?: Guard<Context>;
 }
 
-export type Subscribers<Event extends AllowedNames, Context extends object> = {
+export type Subscribers<
+  Event extends AllowedNames,
+  Context extends FsmContext<object>,
+> = {
   [key in Event]?: Array<Callback<Context>>;
 };

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { StateMachineParameters, StateMachine, t } from '../..';
+import { StateMachine, t, FsmContext } from '../..';
 
 enum OrderItemState {
   draft = 'draft',
@@ -22,52 +22,55 @@ interface IOrderItemContext {
   place: string;
 }
 
-const orderItemFSMParameters: StateMachineParameters<
+class OrderItemStatus extends StateMachine<
   OrderItemState,
   OrderItemEvent,
-  IOrderItemContext
-> = {
-  id: 'orderItemsStatus',
-  initial: OrderItemState.draft,
-  ctx: () => ({
-    place: 'My warehouse',
-  }),
-  transitions: [
-    t(OrderItemState.draft, OrderItemEvent.create, OrderItemState.assembly),
-    t(
-      OrderItemState.assembly,
-      OrderItemEvent.assemble,
-      OrderItemState.warehouse,
-    ),
-    t(
-      OrderItemState.warehouse,
-      OrderItemEvent.transfer,
-      OrderItemState.warehouse,
-      {
-        guard(context: IOrderItemContext, place: string) {
-          return context.place !== place;
-        },
-        onExit(context: IOrderItemContext, place: string) {
-          context.place = place;
-        },
-      },
-    ),
-    t(
-      [OrderItemState.assembly, OrderItemState.warehouse],
-      OrderItemEvent.ship,
-      OrderItemState.shipping,
-    ),
-    t(
-      OrderItemState.shipping,
-      OrderItemEvent.deliver,
-      OrderItemState.delivered,
-    ),
-  ],
-};
+  FsmContext<IOrderItemContext>
+> {
+  constructor() {
+    super({
+      initial: OrderItemState.draft,
+      data: () => ({
+        place: 'My warehouse',
+      }),
+      transitions: [
+        t(OrderItemState.draft, OrderItemEvent.create, OrderItemState.assembly),
+        t(
+          OrderItemState.assembly,
+          OrderItemEvent.assemble,
+          OrderItemState.warehouse,
+        ),
+        t(
+          OrderItemState.warehouse,
+          OrderItemEvent.transfer,
+          OrderItemState.warehouse,
+          {
+            guard(context, place: string) {
+              return context.data.place !== place;
+            },
+            onExit(context, place: string) {
+              context.data.place = place;
+            },
+          },
+        ),
+        t(
+          [OrderItemState.assembly, OrderItemState.warehouse],
+          OrderItemEvent.ship,
+          OrderItemState.shipping,
+        ),
+        t(
+          OrderItemState.shipping,
+          OrderItemEvent.deliver,
+          OrderItemState.delivered,
+        ),
+      ],
+    });
+  }
+}
 
 describe('Order item FSM', () => {
   it('should be able to pass all transitions', async () => {
-    const orderItemFSM = new StateMachine(orderItemFSMParameters);
+    const orderItemFSM = new OrderItemStatus();
 
     expect(orderItemFSM.current).toBe(OrderItemState.draft);
 
