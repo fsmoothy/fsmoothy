@@ -18,6 +18,7 @@
   - [Subscribers](#subscribers)
   - [Lifecycle](#lifecycle)
   - [Bound lifecycle methods](#bound-lifecycle-methods)
+  - [Dependency injection](#dependency-injection)
   - [Error handling](#error-handling)
 - [Installation](#installation)
 - [Examples](#examples)
@@ -58,9 +59,9 @@ enum OrderItemEvent {
   deliver = 'deliver',
 }
 
-interface IOrderItemContext {
+type OrderItemContext = FsmContext<{
   place: string;
-}
+}>
 ```
 
 ### State Machine
@@ -68,9 +69,13 @@ interface IOrderItemContext {
 To create state machine, we need to instantiate `StateMachine` class and pass the initial state and the state transition table to the constructor.
 
 ```typescript
-import { StateMachine, t } from 'fsmoothy';
+import { StateMachine, t, FsmContext } from 'fsmoothy';
 
-const orderItemFSM = new StateMachine({
+const orderItemFSM = new StateMachine<
+  OrderItemState,
+  OrderItemEvent,
+  OrderItemContext
+>({
   id: 'orderItemsStatus',
   initial: OrderItemState.draft,
   data: () => ({
@@ -88,11 +93,11 @@ const orderItemFSM = new StateMachine({
       OrderItemEvent.transfer,
       OrderItemState.warehouse,
       {
-        guard(context: IOrderItemContext, place: string) {
-          return context.place !== place;
+        guard(context, place: string) {
+          return context.data.place !== place;
         },
-        onExit(context: IOrderItemContext, place: string) {
-          context.place = place;
+        onExit(context, place: string) {
+          context.data.place = place;
         },
       },
     ),
@@ -172,15 +177,15 @@ We're passing the `place` argument to the `transfer` method. It will be passed t
 We can use the `guard` function to make a transition conditional.
 
 ```typescript
-const stateMachine = new StateMachine<State, Event, { foo: string }>({
+const stateMachine = new StateMachine<State, Event, FsmContext<{ foo: string }>>({
   initial: State.idle,
   data: () => ({ foo: 'bar' }),
   transitions: [
     t(State.idle, Event.fetch, State.pending, {
-      guard: (context) => context.foo === 'bar',
+      guard: (context) => context.data.foo === 'bar',
     }),
     t(State.idle, Event.fetch, State.resolved, {
-      guard: (context) => context.foo === 'foo',
+      guard: (context) => context.data.foo === 'foo',
     }),
     t(All, Event.reset, State.idle),
   ],
@@ -189,7 +194,7 @@ const stateMachine = new StateMachine<State, Event, { foo: string }>({
 await stateMachine.fetch(); // now current state is pending
 
 await stateMachine.reset();
-stateMachine.context.foo = 'foo';
+stateMachine.data.foo = 'foo';
 await stateMachine.fetch(); // now current state is resolved
 ```
 
@@ -200,21 +205,21 @@ It will moving to the next state only if the `guard` function returns `true`.
 We can add transition dynamically using the `addTransition` method.
 
 ```typescript
-orderItemFSM.addTransition([
+orderItemFSM.addTransition(
   t(
     OrderItemState.shipping,
     OrderItemEvent.transfer,
     OrderItemState.shipping,
     {
-      guard(context: IOrderItemContext, place: string) {
-        return context.place !== place;
+      guard(context: OrderItemContext, place: string) {
+        return context.data.place !== place;
       },
-      onExit(context: IOrderItemContext, place: string) {
-        context.place = place;
+      onExit(context: OrderItemContext, place: string) {
+        context.data.place = place;
       },
     },
   ),
-]);
+);
 ```
 
 ### Current state
@@ -406,6 +411,44 @@ You also able to use `bind` method to bind your own `this` keyword to the functi
 orderItemFSM.on(function () {
   console.log(this.current);
 }.bind({ current: 'test' }));
+```
+
+### Dependency injection
+
+You can pass dependencies to the fsm using the `inject` property.
+
+```typescript
+type MyContext = FsmContext<{
+  place: string;
+}> & {
+  logger: Logger;
+};
+
+const stateMachine = new StateMachine<State, Event, MyContext>({
+  initial: State.idle,
+  data: () => ({ foo: 'bar' }),
+  transitions: [
+    t(State.idle, Event.fetch, State.pending, {
+      guard: (context) => context.data.foo === 'bar',
+    }),
+    t(State.idle, Event.fetch, State.resolved, {
+      guard: (context) => context.data.foo === 'foo',
+    }),
+    t(All, Event.reset, State.idle),
+  ],
+  inject: {
+    logger: async (fsm) => new Logger(fsm),
+  },
+});
+```
+
+Logger will be resolve on first transition.
+
+There is also a `inject` and `injectAsync` method that allows you to add dependencies dynamically.
+
+```typescript
+stateMachine.inject('logger', new Logger(fsm));
+stateMachine.injectAsync('logger', async (fsm) => new Logger(fsm)); // factory function
 ```
 
 ### Error handling
