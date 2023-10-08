@@ -421,6 +421,73 @@ describe('StateMachine', () => {
     });
   });
 
+  describe('inject', () => {
+    it('should be able to inject context', async () => {
+      const service = vi.fn().mockResolvedValue({ foo: 'bar' });
+      const asyncService = vi.fn().mockResolvedValue({ foo: 'bar' });
+      const callback = vi.fn();
+
+      const stateMachine = new StateMachine<
+        State,
+        Event,
+        FsmContext<{ foo: string }> & {
+          service: typeof service;
+          asyncService: typeof asyncService;
+        }
+      >({
+        initial: State.idle,
+        data: () => ({ foo: 'bar' }),
+        transitions: [t(State.idle, Event.fetch, State.pending)],
+      });
+
+      stateMachine.inject('service', service);
+      await stateMachine.injectAsync('asyncService', async () => asyncService);
+
+      stateMachine.on(Event.fetch, callback);
+
+      await stateMachine.fetch();
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith({
+        data: { foo: 'bar' },
+        service,
+        asyncService,
+      });
+    });
+
+    it('should be able to inject services on initialization', async () => {
+      const service = vi.fn().mockResolvedValue({ foo: 'bar' });
+      const asyncService = vi.fn().mockResolvedValue({ foo: 'bar' });
+      const callback = vi.fn();
+
+      const stateMachine = new StateMachine<
+        State,
+        Event,
+        FsmContext<{ foo: string }> & {
+          service: typeof service;
+          asyncService: typeof asyncService;
+        }
+      >({
+        initial: State.idle,
+        data: () => ({ foo: 'bar' }),
+        transitions: [t(State.idle, Event.fetch, State.pending)],
+        inject: {
+          service: () => service,
+          asyncService: async () => asyncService,
+        },
+      });
+
+      stateMachine.on(Event.fetch, callback);
+
+      await stateMachine.fetch();
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith({
+        data: { foo: 'bar' },
+        service,
+        asyncService,
+      });
+    });
+  });
+
   describe('nested', () => {
     enum NestedStates {
       walk = 'walk',

@@ -18,6 +18,28 @@ type States<State extends AllowedNames | Array<AllowedNames>> = {
   [key in State extends Array<AllowedNames> ? never : State]?: Nested;
 };
 
+type Injectable<
+  State extends AllowedNames | Array<AllowedNames>,
+  Event extends AllowedNames,
+  Context extends FsmContext<object> = FsmContext<object>,
+> = {
+  [Key in keyof Omit<Context, 'data'>]?:
+    | ((
+        fsm: IStateMachine<
+          State extends AllowedNames ? State : never,
+          Event,
+          Context
+        >,
+      ) => Context[Key])
+    | ((
+        fsm: IStateMachine<
+          State extends AllowedNames ? State : never,
+          Event,
+          Context
+        >,
+      ) => Promise<Context[Key]>);
+};
+
 export interface StateMachineParameters<
   State extends AllowedNames | Array<AllowedNames>,
   Event extends AllowedNames,
@@ -36,6 +58,7 @@ export interface StateMachineParameters<
   readonly states?: (
     parameters: StateMachineParameters<State, Event, Context>,
   ) => States<State>;
+  readonly inject?: Injectable<State, Event, Context>;
 }
 
 type StateMachineEvents<Event extends AllowedNames> = {
@@ -131,6 +154,7 @@ export class _StateMachine<
   private _last: Transition<State, Event, Context>;
   private _id: string;
   private _context = {} as Context;
+  private _contextPromise: Promise<Context> | null = null;
   private _boundTo: any = this;
   private _dataPromise: Promise<Context['data']> | null = null;
 
@@ -172,20 +196,13 @@ export class _StateMachine<
 
     this._states = parameters.states?.(parameters) ?? {};
 
-    const data = parameters.data?.(parameters) ?? {};
-    if (data instanceof Promise) {
-      this._dataPromise = data;
-      this._context.data = {};
-    } else {
-      this._context.data = data;
-    }
-
     this._allowedNames = this.prepareEvents(parameters.transitions);
     this._transitions = this.prepareTransitions(parameters.transitions);
     this._subscribers = this.prepareSubscribers(parameters.subscribers);
 
     this.populateEventMethods(parameters);
     this.populateCheckers(parameters);
+    this.populateContext(parameters);
   }
 
   /**
@@ -445,6 +462,13 @@ export class _StateMachine<
 
     const transition = (await this.getAllowedTransition(event, ...arguments_))!;
 
+    if (this._contextPromise) {
+      for (const [key, value] of Object.entries(await this._contextPromise)) {
+        this._context[key as keyof Context] = value as Context[keyof Context];
+      }
+      this._contextPromise = null;
+    }
+
     if (this._dataPromise) {
       this._context.data = await this._dataPromise;
       this._dataPromise = null;
@@ -482,6 +506,23 @@ export class _StateMachine<
     this._boundTo = _this;
 
     return this;
+  }
+
+  /**
+   * Injects service into the state machine context.
+   */
+  public inject<const Key extends keyof Omit<Context, 'data'>>(
+    key: Key,
+    service: Context[Key],
+  ) {
+    this._context[key] = service;
+  }
+
+  public async injectAsync<const Key extends keyof Omit<Context, 'data'>>(
+    key: Key,
+    service: (fsm: this) => Promise<Context[Key]>,
+  ) {
+    this._context[key] = await service(this);
   }
 
   private async makeNestedTransition(
@@ -691,6 +732,37 @@ export class _StateMachine<
 
     // @ts-expect-error We need to assign the method to the instance.
     this[`is${capitalized}`] = () => this.is(state);
+  }
+
+  private populateContext(
+    parameters: StateMachineParameters<State, Event, Context>,
+  ) {
+    this._contextPromise = Promise.resolve({} as Context);
+
+    for (const [key, value] of Object.entries(parameters.inject ?? {})) {
+      const contextValue = (
+        typeof value === 'function' ? value(this) : value
+      ) as Context[keyof Context];
+
+      if (contextValue instanceof Promise) {
+        this._contextPromise = this._contextPromise.then((context) => {
+          return contextValue.then((value) => {
+            context[key as keyof Context] = value;
+            return context;
+          });
+        });
+      } else {
+        this._context[key as keyof Context] = contextValue;
+      }
+    }
+
+    const data = parameters.data?.(parameters) ?? {};
+    if (data instanceof Promise) {
+      this._dataPromise = data;
+      this._context.data = {};
+    } else {
+      this._context.data = data;
+    }
   }
 
   private populateCheckers(
