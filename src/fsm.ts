@@ -4,12 +4,14 @@ import {
   ParallelState as _ParallelState,
 } from './nested';
 import { All } from './symbols';
+import { TransitionOptions, t } from './transition';
 import {
   AllowedNames,
   Callback,
   Transition,
   Subscribers,
   FsmContext,
+  Guard,
 } from './types';
 
 type Nested = _NestedState<any> | _ParallelState<any>;
@@ -250,15 +252,19 @@ export class _StateMachine<
    * @returns New state machine.
    */
   public addTransition<
-    NewState extends AllowedNames,
-    NewEvent extends AllowedNames,
-  >(transition: Transition<NewState, NewEvent, Context>) {
-    const { from, event, to } = transition as any;
-
+    const NewState extends AllowedNames,
+    const NewEvent extends AllowedNames,
+  >(
+    from: Array<State> | State,
+    event: Event,
+    to: State,
+    guardOrOptions?: Guard<Context> | TransitionOptions<Context>,
+  ) {
+    const transition = t(from, event, to, guardOrOptions);
     const states = Array.isArray(from) ? [...from, to] : [from, to];
 
     this.addEventMethods(event);
-    this.addEvent(transition as any);
+    this.addEvent(transition);
 
     if (!this._transitions.has(event)) {
       this._transitions.set(event, new Map());
@@ -272,9 +278,7 @@ export class _StateMachine<
       if (!transitionsByState?.has(state)) {
         transitionsByState?.set(state, []);
       }
-      transitionsByState
-        ?.get(state)
-        ?.push(this.bindToCallbacks(transition as any));
+      transitionsByState?.get(state)?.push(this.bindToCallbacks(transition));
     }
 
     return this as unknown as IStateMachine<

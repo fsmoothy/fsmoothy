@@ -206,19 +206,17 @@ We can add transition dynamically using the `addTransition` method.
 
 ```typescript
 orderItemFSM.addTransition(
-  t(
-    OrderItemState.shipping,
-    OrderItemEvent.transfer,
-    OrderItemState.shipping,
-    {
-      guard(context: OrderItemContext, place: string) {
-        return context.data.place !== place;
-      },
-      onExit(context: OrderItemContext, place: string) {
-        context.data.place = place;
-      },
+  OrderItemState.shipping,
+  OrderItemEvent.transfer,
+  OrderItemState.shipping,
+  {
+    guard(context: OrderItemContext, place: string) {
+      return context.data.place !== place;
     },
-  ),
+    onExit(context: OrderItemContext, place: string) {
+      context.data.place = place;
+    },
+  },
 );
 ```
 

@@ -1,6 +1,6 @@
 import { AllowedNames, Callback, Guard, Transition, FsmContext } from './types';
 
-interface TransitionOptions<Context extends FsmContext<object>> {
+export interface TransitionOptions<Context extends FsmContext<object>> {
   onExit?: Callback<Context>;
   onEnter?: Callback<Context>;
   onLeave?: Callback<Context>;
@@ -25,17 +25,16 @@ function _noop() {
  * @param to - To state.
  * @param options - Transition options.
  */
-
-export function t<
+export const t = <
   State extends AllowedNames,
-  Event extends AllowedNames,
-  Context extends FsmContext<object>,
+  const Event extends AllowedNames,
+  Context extends FsmContext<object> = FsmContext<object>,
 >(
   from: Array<State> | State,
   event: Event,
   to: State,
   guardOrOptions?: Guard<Context> | TransitionOptions<Context>,
-): Transition<State, Event, Context> {
+): Transition<State, Event, Context> => {
   if (typeof guardOrOptions === 'function') {
     return {
       from,
@@ -66,4 +65,4 @@ export function t<
     onEnter,
     guard,
   };
-}
+};

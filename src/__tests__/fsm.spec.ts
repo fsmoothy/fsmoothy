@@ -151,12 +151,14 @@ describe('StateMachine', () => {
       await stateMachine.fetch();
 
       const _stateMachine = stateMachine
-        .addTransition(t(State.pending, Event.reject, State.rejected))
+        .addTransition(State.pending, Event.reject, State.rejected)
         .addTransition(
-          t([State.resolved, State.rejected], Event.reset, State.idle),
+          [State.resolved, State.rejected],
+          Event.reset,
+          State.idle,
         )
         // try to add transition with the same event - show warning
-        .addTransition(t(State.pending, Event.reject, State.rejected));
+        .addTransition(State.pending, Event.reject, State.rejected);
 
       await _stateMachine.resolve();
       expect(_stateMachine.isResolved()).toBe(true);
@@ -950,11 +952,9 @@ describe('StateMachine', () => {
       stateMachine.bind(bound);
       stateMachine.on(Event.fetch, subscribeCallback);
 
-      stateMachine.addTransition(
-        t(State.pending, Event.resolve, State.idle, {
-          onEnter: callback,
-        }),
-      );
+      stateMachine.addTransition(State.pending, Event.resolve, State.idle, {
+        onEnter: callback,
+      });
 
       await stateMachine.fetch();
       expect(subscribeCallback).toHaveBeenCalledTimes(1);
