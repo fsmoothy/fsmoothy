@@ -438,10 +438,9 @@ describe('StateMachine', () => {
         initial: State.idle,
         data: () => ({ foo: 'bar' }),
         transitions: [t(State.idle, Event.fetch, State.pending)],
-      });
-
-      stateMachine.inject('service', service);
-      await stateMachine.injectAsync('asyncService', async () => asyncService);
+      })
+        .inject('service', service)
+        .injectAsync('asyncService', async () => asyncService);
 
       stateMachine.on(Event.fetch, callback);
 

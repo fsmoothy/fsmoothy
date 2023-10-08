@@ -516,13 +516,32 @@ export class _StateMachine<
     service: Context[Key],
   ) {
     this._context[key] = service;
+
+    return this;
   }
 
-  public async injectAsync<const Key extends keyof Omit<Context, 'data'>>(
+  /**
+   * Injects service into the state machine context using factory function.
+   */
+  public injectAsync<const Key extends keyof Omit<Context, 'data'>>(
     key: Key,
-    service: (fsm: this) => Promise<Context[Key]>,
+    service: (fsm: this) => Promise<Context[Key]> | Context[Key],
   ) {
-    this._context[key] = await service(this);
+    const contextValue = service(this);
+
+    if (contextValue instanceof Promise) {
+      this._contextPromise ??= Promise.resolve({} as Context);
+      this._contextPromise.then((context) => {
+        return contextValue.then((value) => {
+          context[key as keyof Context] = value;
+          return context;
+        });
+      });
+    } else {
+      this._context[key as keyof Context] = contextValue;
+    }
+
+    return this;
   }
 
   private async makeNestedTransition(
