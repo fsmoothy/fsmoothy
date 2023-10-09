@@ -1,24 +1,11 @@
-import { StateMachineParameters, StateMachine, _StateMachine } from './fsm';
-import { AllowedNames, FsmContext } from './types';
-
-export type HistoryTypes = 'none' | 'deep';
-
-export interface NestedState<
-  NestedStatedStateMachine extends _StateMachine<
-    AllowedNames,
-    AllowedNames,
-    FsmContext<object>
-  >,
-> {
-  type: 'nested';
-  machine: NestedStatedStateMachine;
-  history: HistoryTypes;
-}
-
-export interface ParallelState<_NestedState extends NestedState<any>> {
-  type: 'parallel';
-  machines: Array<_NestedState>;
-}
+import { StateMachineParameters, StateMachine } from './fsm';
+import {
+  AllowedNames,
+  FsmContext,
+  HistoryTypes,
+  NestedState,
+  ParallelState,
+} from './types';
 
 export interface INestedOptions {
   history?: HistoryTypes;

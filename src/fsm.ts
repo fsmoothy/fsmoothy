@@ -1,8 +1,4 @@
 import { StateMachineError } from './fsm.error';
-import {
-  NestedState as _NestedState,
-  ParallelState as _ParallelState,
-} from './nested';
 import { All } from './symbols';
 import { TransitionOptions, t } from './transition';
 import {
@@ -12,9 +8,12 @@ import {
   Subscribers,
   FsmContext,
   Guard,
+  IStateMachine,
+  NestedState,
+  ParallelState,
 } from './types';
 
-type Nested = _NestedState<any> | _ParallelState<any>;
+type Nested = NestedState<any> | ParallelState<any>;
 
 type States<State extends AllowedNames> = Map<State, Nested | null>;
 
@@ -23,21 +22,13 @@ type Injectable<
   Event extends AllowedNames,
   Context extends FsmContext<object> = FsmContext<object>,
 > = {
-  [Key in keyof Omit<Context, 'data'>]?:
-    | ((
-        fsm: IStateMachine<
-          State extends AllowedNames ? State : never,
-          Event,
-          Context
-        >,
-      ) => Context[Key])
-    | ((
-        fsm: IStateMachine<
-          State extends AllowedNames ? State : never,
-          Event,
-          Context
-        >,
-      ) => Promise<Context[Key]>);
+  [Key in keyof Omit<Context, 'data'>]?: (
+    fsm: IStateMachine<
+      State extends AllowedNames ? State : never,
+      Event,
+      Context
+    >,
+  ) => Context[Key] | Promise<Context[Key]>;
 };
 
 export interface StateMachineParameters<
@@ -62,39 +53,6 @@ export interface StateMachineParameters<
   };
   readonly inject?: Injectable<State, Event, Context>;
 }
-
-type StateMachineEvents<Event extends AllowedNames> = {
-  /**
-   * @param arguments_ - Arguments to pass to lifecycle hooks.
-   */
-  [key in Event]: <T extends Array<unknown>>(...arguments_: T) => Promise<void>;
-};
-
-type CapitalizeString<S> = S extends symbol
-  ? never
-  : S extends string
-  ? Capitalize<S>
-  : S;
-
-type StateMachineTransitionCheckers<Event extends AllowedNames> = {
-  /**
-   * @param arguments_ - Arguments to pass to guard.
-   */
-  [key in `can${CapitalizeString<Event>}`]: () => Promise<boolean>;
-};
-
-type StateMachineCheckers<State extends AllowedNames> = {
-  [key in `is${CapitalizeString<State>}`]: () => boolean;
-};
-
-export type IStateMachine<
-  State extends AllowedNames,
-  Event extends AllowedNames,
-  Context extends FsmContext<object>,
-> = _StateMachine<State, Event, Context> &
-  StateMachineEvents<Event> &
-  StateMachineCheckers<State> &
-  StateMachineTransitionCheckers<Event>;
 
 export type StateMachineConstructor = {
   new <
@@ -163,10 +121,10 @@ export class _StateMachine<
   /**
    * For nested state machines.
    */
-  private _activeChild: _NestedState<
-    _StateMachine<AllowedNames, AllowedNames, FsmContext<object>>
+  private _activeChild: NestedState<
+    IStateMachine<AllowedNames, AllowedNames, FsmContext<object>>
   > | null = null;
-  private _activeParallelState: _ParallelState<any> | null = null;
+  private _activeParallelState: ParallelState<any> | null = null;
   private _states: States<State>;
 
   /**
@@ -205,39 +163,35 @@ export class _StateMachine<
   /**
    * Current state.
    */
-  get current(): State {
+  public get current(): State {
     return this._last.to;
   }
 
   /**
    * Data object.
    */
-  get data(): Context['data'] {
+  public get data(): Context['data'] {
     return this._context.data;
   }
 
   /**
    * Active child state machine.
    */
-  get child(): IStateMachine<State, Event, Context> {
-    return (this._activeChild?.machine ?? this) as unknown as IStateMachine<
-      State,
-      Event,
-      Context
-    >;
+  public get child() {
+    return this._activeChild?.machine;
   }
 
   /**
    * All events in the state machine.
    */
-  get events(): Array<Event> {
+  public get events(): Array<Event> {
     return [...this._transitions.keys()];
   }
 
   /**
    * All states in the state machine.
    */
-  get states(): Array<State> {
+  public get states(): Array<State> {
     return [...this._states.keys()];
   }
 
@@ -290,7 +244,7 @@ export class _StateMachine<
    */
   public addNestedMachine(state: State, nestedState: Nested) {
     if (nestedState.type === 'parallel') {
-      return;
+      return this;
     }
 
     this._states.set(state, nestedState);
@@ -306,6 +260,20 @@ export class _StateMachine<
     for (const nestedState of nestedStates) {
       this.addIsChecker(nestedState as State);
     }
+
+    return this;
+  }
+
+  /**
+   * Removes all nested state machines by state.
+   */
+  public removeState(state: State) {
+    if (this.current === state) {
+      this._activeChild = null;
+      this._activeParallelState = null;
+    }
+
+    this._states.delete(state);
 
     return this;
   }
@@ -857,7 +825,7 @@ export class _StateMachine<
       case 'none': {
         this._activeChild = {
           ...child,
-          machine: new _StateMachine(child.machine._initialParameters),
+          machine: new StateMachine(child.machine._initialParameters),
         };
 
         break;

@@ -1,3 +1,5 @@
+import { _StateMachine } from './fsm';
+
 export type AllowedNames = string | number;
 
 export type FsmContext<D extends object = never> = {
@@ -38,3 +40,55 @@ export type Subscribers<
 > = {
   [key in Event]?: Array<Callback<Context>>;
 };
+
+type StateMachineEvents<Event extends AllowedNames> = {
+  /**
+   * @param arguments_ - Arguments to pass to lifecycle hooks.
+   */
+  [key in Event]: <T extends Array<unknown>>(...arguments_: T) => Promise<void>;
+};
+
+type CapitalizeString<S> = S extends symbol
+  ? never
+  : S extends string
+  ? Capitalize<S>
+  : S;
+
+type StateMachineTransitionCheckers<Event extends AllowedNames> = {
+  /**
+   * @param arguments_ - Arguments to pass to guard.
+   */
+  [key in `can${CapitalizeString<Event>}`]: () => Promise<boolean>;
+};
+
+type StateMachineCheckers<State extends AllowedNames> = {
+  [key in `is${CapitalizeString<State>}`]: () => boolean;
+};
+
+export type IStateMachine<
+  State extends AllowedNames,
+  Event extends AllowedNames,
+  Context extends FsmContext<object>,
+> = _StateMachine<State, Event, Context> &
+  StateMachineEvents<Event> &
+  StateMachineCheckers<State> &
+  StateMachineTransitionCheckers<Event>;
+
+export type HistoryTypes = 'none' | 'deep';
+
+export interface NestedState<
+  NestedStatedStateMachine extends IStateMachine<
+    AllowedNames,
+    AllowedNames,
+    FsmContext<object>
+  >,
+> {
+  type: 'nested';
+  machine: NestedStatedStateMachine;
+  history: HistoryTypes;
+}
+
+export interface ParallelState<_NestedState extends NestedState<any>> {
+  type: 'parallel';
+  machines: Array<_NestedState>;
+}

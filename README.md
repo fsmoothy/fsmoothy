@@ -200,7 +200,7 @@ await stateMachine.fetch(); // now current state is resolved
 
 It will moving to the next state only if the `guard` function returns `true`.
 
-### Dynamic add transitions
+### Dynamic add and remove transitions
 
 We can add transition dynamically using the `addTransition` method.
 
@@ -219,6 +219,8 @@ orderItemFSM.addTransition(
   },
 );
 ```
+
+You're also able to remove transitions using `removeTransition` method.
 
 ### Current state
 
@@ -374,6 +376,8 @@ fsm.is(NestedStates.walk); // false
 ```
 
 `states` property is a fabric function that returns an object with nested state machines. It's called only once on initialization.
+
+You're also able to remove child state using `removeState` method.
 
 ### Lifecycle
 

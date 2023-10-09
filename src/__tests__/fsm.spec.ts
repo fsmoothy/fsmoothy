@@ -601,18 +601,17 @@ describe('StateMachine', () => {
 
       await fsm.toggle();
       expect(fsm.is(State.red)).toBe(true);
-      expect(fsm.child.is(NestedStates.walk)).toBe(true);
-      expect(fsm.child.data).toEqual({ test: 'foo' });
+      expect(fsm.child?.is(NestedStates.walk)).toBe(true);
+      expect(fsm.child?.data).toEqual({ test: 'foo' });
 
       await fsm.next();
       expect(fsm.is(State.green)).toBe(true);
-      expect(fsm.child.is(NestedStates.walk)).toBe(false);
-      expect(fsm.child.data).toEqual({ test: 'bar' });
+      expect(fsm.child?.is(NestedStates.walk)).toBeFalsy();
 
       await fsm.next();
       await fsm.next();
       expect(fsm.is(State.red)).toBe(true);
-      expect(fsm.child.data).toEqual({ test: 'foo' });
+      expect(fsm.child?.data).toEqual({ test: 'foo' });
     });
 
     it('should not save nested FSM context if history is none', async () => {
@@ -668,18 +667,17 @@ describe('StateMachine', () => {
 
       await fsm.toggle();
       expect(fsm.is(State.red)).toBe(true);
-      expect(fsm.child.is(NestedStates.walk)).toBe(true);
-      expect(fsm.child.data).toEqual({ test: 'foo' });
+      expect(fsm.child?.is(NestedStates.walk)).toBe(true);
+      expect(fsm.child?.data).toEqual({ test: 'foo' });
 
       await fsm.next();
       expect(fsm.is(State.green)).toBe(true);
-      expect(fsm.child.is(NestedStates.walk)).toBe(false);
-      expect(fsm.child.data).toEqual({ test: 'bar' });
+      expect(fsm.child?.is(NestedStates.walk)).toBeFalsy();
 
       await fsm.next();
       await fsm.next();
       expect(fsm.is(State.red)).toBe(true);
-      expect(fsm.child.data).toEqual({ test: 'bar' });
+      expect(fsm.child?.data).toEqual({ test: 'bar' });
     });
 
     it('should trigger subscribers on nested effects and transitions', async () => {
@@ -733,22 +731,21 @@ describe('StateMachine', () => {
 
       await fsm.toggle();
       expect(fsm.is(State.red)).toBe(true);
-      expect(fsm.child.is(NestedStates.walk)).toBe(true);
-      expect(fsm.child.data).toEqual({ test: 'foo' });
+      expect(fsm.child?.is(NestedStates.walk)).toBe(true);
+      expect(fsm.child?.data).toEqual({ test: 'foo' });
 
       await fsm.next();
       expect(fsm.is(State.green)).toBe(true);
-      expect(fsm.child.is(NestedStates.walk)).toBe(false);
-      expect(fsm.child.data).toEqual({ test: 'bar' });
+      expect(fsm.child?.is(NestedStates.walk)).toBeFalsy();
 
       await fsm.next();
       await fsm.next();
       expect(fsm.is(State.red)).toBe(true);
-      expect(fsm.child.data).toEqual({ test: 'foo' });
+      expect(fsm.child?.data).toEqual({ test: 'foo' });
 
       expect(callback).toHaveBeenCalledTimes(5);
       expect(nestedCallback).toHaveBeenCalledTimes(1);
-      expect(nestedCallback).toHaveBeenCalledWith({ data: fsm.child.data });
+      expect(nestedCallback).toHaveBeenCalledWith({ data: fsm.child?.data });
       expect(handlerContext).toBe(fsm.child);
     });
 
@@ -784,10 +781,49 @@ describe('StateMachine', () => {
 
       await fsm.toggle();
       expect(fsm.is(State.red)).toBe(true);
-      expect(fsm.child.is(NestedStates.walk)).toBe(true);
+      expect(fsm.child?.is(NestedStates.walk)).toBe(true);
 
       await fsm.next();
       expect(fsm.is(State.green)).toBe(true);
+    });
+
+    it('should be able to remove nested states dynamically', async () => {
+      const fsm = new StateMachine<
+        State | NestedStates,
+        Event | NestedEvents,
+        never
+      >({
+        id: 'fsm',
+        initial: State.green,
+        transitions: [
+          t(State.green, Event.next, State.yellow),
+          t(State.yellow, Event.next, State.red),
+          t(State.red, Event.next, State.green),
+        ],
+        states: () => ({
+          [State.red]: nested({
+            id: 'nested-fsm',
+            initial: NestedStates.dontWalk,
+            transitions: [
+              t(NestedStates.dontWalk, NestedEvents.toggle, NestedStates.walk),
+            ],
+          }),
+        }),
+      });
+
+      await fsm.next();
+      await fsm.next();
+      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.child).toBeTruthy();
+
+      fsm.removeState(State.red);
+
+      expect(fsm.isRed()).toBe(true);
+      expect(fsm.child).toBeFalsy();
+
+      await expect(fsm.toggle()).rejects.toThrow(
+        'Event toggle is not allowed in state red of fsm',
+      );
     });
   });
 
@@ -875,14 +911,14 @@ describe('StateMachine', () => {
 
       await fsm.toggle();
       expect(fsm.is(State.red)).toBe(true);
-      expect(fsm.child.is(NestedStates.walk)).toBe(true);
+      expect(fsm.child?.is(NestedStates.walk)).toBe(true);
 
       await fsm.next();
-      expect(fsm.child.is(State.yellow)).toBe(true);
+      expect(fsm.child?.is(State.yellow)).toBe(true);
 
       await fsm.next();
       expect(fsm.is(State.green)).toBe(true);
-      expect(fsm.child.is(NestedStates.walk)).toBe(false);
+      expect(fsm.child?.is(NestedStates.walk)).toBeFalsy();
 
       expect(count).toBe(3);
     });
