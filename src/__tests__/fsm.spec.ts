@@ -173,6 +173,16 @@ describe('StateMachine', () => {
       expect(_stateMachine.isRejected()).toBe(true);
     });
 
+    it('should be able to remove transition', async () => {
+      const stateMachine = createFetchStateMachine();
+
+      stateMachine.removeTransition(State.idle, Event.fetch, State.pending);
+
+      await expect(stateMachine.fetch()).rejects.toThrow(
+        'Event fetch is not allowed in state idle of fetch fsm',
+      );
+    });
+
     it('should throw if transition is not possible', async () => {
       const stateMachine = createFetchStateMachine();
 
@@ -537,6 +547,7 @@ describe('StateMachine', () => {
       await fsm.next();
       await fsm.next();
       expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.child).toBeTruthy();
       await fsm.toggle();
 
       expect(fsm.isRed()).toBe(true);

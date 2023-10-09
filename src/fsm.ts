@@ -16,9 +16,7 @@ import {
 
 type Nested = _NestedState<any> | _ParallelState<any>;
 
-type States<State extends AllowedNames | Array<AllowedNames>> = {
-  [key in State extends Array<AllowedNames> ? never : State]?: Nested;
-};
+type States<State extends AllowedNames> = Map<State, Nested | null>;
 
 type Injectable<
   State extends AllowedNames | Array<AllowedNames>,
@@ -59,7 +57,9 @@ export interface StateMachineParameters<
   readonly subscribers?: Subscribers<Event, Context>;
   readonly states?: (
     parameters: StateMachineParameters<State, Event, Context>,
-  ) => States<State>;
+  ) => {
+    [key in State extends Array<AllowedNames> ? never : State]?: Nested;
+  };
   readonly inject?: Injectable<State, Event, Context>;
 }
 
@@ -170,10 +170,6 @@ export class _StateMachine<
   private _states: States<State>;
 
   /**
-   * Map of allowed events by from-state.
-   */
-  private _allowedNames: Map<State, Set<Event>>;
-  /**
    * Map of transitions by event and from-state.
    */
   private _transitions: TransitionsStorage<State, Event, Context>;
@@ -196,9 +192,8 @@ export class _StateMachine<
     this._id = parameters.id ?? 'fsm';
     this._last = identityTransition(parameters.initial);
 
-    this._states = parameters.states?.(parameters) ?? {};
+    this._states = this.prepareStates(parameters);
 
-    this._allowedNames = this.prepareEvents(parameters.transitions);
     this._transitions = this.prepareTransitions(parameters.transitions);
     this._subscribers = this.prepareSubscribers(parameters.subscribers);
 
@@ -222,7 +217,7 @@ export class _StateMachine<
   }
 
   /**
-   * Child state machine.
+   * Active child state machine.
    */
   get child(): IStateMachine<State, Event, Context> {
     return (this._activeChild?.machine ?? this) as unknown as IStateMachine<
@@ -243,7 +238,7 @@ export class _StateMachine<
    * All states in the state machine.
    */
   get states(): Array<State> {
-    return [...this._allowedNames.keys()];
+    return [...this._states.keys()];
   }
 
   /**
@@ -264,7 +259,6 @@ export class _StateMachine<
     const states = Array.isArray(from) ? [...from, to] : [from, to];
 
     this.addEventMethods(event);
-    this.addEvent(transition);
 
     if (!this._transitions.has(event)) {
       this._transitions.set(event, new Map());
@@ -299,7 +293,7 @@ export class _StateMachine<
       return;
     }
 
-    this._states[state as keyof typeof this._states] = nestedState;
+    this._states.set(state, nestedState);
 
     const nestedEvents = nestedState.machine.events;
 
@@ -336,7 +330,6 @@ export class _StateMachine<
     event: Event,
     ...arguments_: Arguments
   ) {
-    const allowedNames = this._allowedNames.get(this.current);
     const transitionsByState = this._transitions.get(event);
 
     // check has from: all
@@ -350,10 +343,6 @@ export class _StateMachine<
           return true;
         }
       }
-    }
-
-    if (!allowedNames?.has(event)) {
-      return false;
     }
 
     if (!transitionsByState?.has(this.current)) {
@@ -484,6 +473,22 @@ export class _StateMachine<
   }
 
   /**
+   * Will remove all transitions with the given from, to and event.
+   */
+  public removeTransition(from: State, event: Event, to: State) {
+    const transitions = this._transitions.get(event)?.get(from);
+
+    if (!transitions) {
+      return this;
+    }
+
+    const newTransitions = transitions.filter((t) => t.to !== to);
+    this._transitions.get(event)?.set(from, newTransitions);
+
+    return this;
+  }
+
+  /**
    * Binds external context to the state machine callbacks.
    *
    * @param this - Context to bind.
@@ -596,7 +601,6 @@ export class _StateMachine<
     }
 
     // Handle from All
-
     const allTransitions = transitionsByState.get(All);
     if (allTransitions) {
       for (const t of allTransitions) {
@@ -645,34 +649,28 @@ export class _StateMachine<
     return _subscribers;
   }
 
-  private addEvent(transition: Transition<State, Event, Context>) {
-    const { from, event, to } = transition;
-    const froms = Array.isArray(from) ? from : [from];
+  private prepareStates(
+    parameters: StateMachineParameters<State, Event, Context>,
+  ) {
+    const states = new Map<State, Nested | null>();
+    const statesFromParameters = parameters.states?.(parameters);
 
-    for (const from of [...froms, to]) {
-      if (!this._allowedNames.has(from)) {
-        this._allowedNames.set(from, new Set<Event>());
-      }
-
-      this._allowedNames.get(from)?.add(event);
-    }
-  }
-
-  private prepareEvents(transitions: Array<Transition<State, Event, Context>>) {
-    return transitions.reduce((accumulator, transition) => {
-      const { from, event, to } = transition;
-      const froms = Array.isArray(from) ? from : [from];
-
-      for (const from of [...froms, to]) {
-        if (!accumulator.has(from)) {
-          accumulator.set(from, new Set<Event>());
+    for (const { from, to } of parameters.transitions) {
+      if (Array.isArray(from)) {
+        for (const state of from) {
+          states.set(state, null);
         }
-
-        accumulator.get(from)?.add(event);
+      } else {
+        states.set(from, null);
       }
+      states.set(to, null);
+    }
 
-      return accumulator;
-    }, new Map<State, Set<Event>>());
+    for (const [state, nested] of Object.entries(statesFromParameters ?? {})) {
+      states.set(state as State, nested as Nested);
+    }
+
+    return states;
   }
 
   private prepareTransitions(
@@ -723,13 +721,16 @@ export class _StateMachine<
   private populateEventMethods(
     parameters: StateMachineParameters<State, Event, Context>,
   ) {
-    const nestedEvents = Object.values(this._states).flatMap((nested) => {
-      const _nested = nested as Nested;
-      if (_nested.type === 'parallel') {
-        return _nested.machines.flatMap((m) => m.machine.events);
+    const nestedEvents = [...this._states.values()].flatMap((nested) => {
+      if (!nested) {
+        return [];
       }
 
-      return _nested.machine.events;
+      if (nested.type === 'parallel') {
+        return nested.machines.flatMap((m) => m.machine.events);
+      }
+
+      return nested.machine.events;
     });
 
     const events = new Set([
@@ -791,13 +792,16 @@ export class _StateMachine<
   private populateCheckers(
     parameters: StateMachineParameters<State, Event, Context>,
   ) {
-    const nestedStates = Object.values(this._states ?? {}).flatMap((nested) => {
-      const _nested = nested as Nested;
-      if (_nested.type === 'parallel') {
-        return _nested.machines.flatMap((m) => m.machine.states);
+    const nestedStates = [...this._states.values()].flatMap((nested) => {
+      if (!nested) {
+        return [];
       }
 
-      return _nested.machine.states;
+      if (nested.type === 'parallel') {
+        return nested.machines.flatMap((m) => m.machine.states);
+      }
+
+      return nested.machine.states;
     });
 
     const states = new Set([
@@ -831,19 +835,11 @@ export class _StateMachine<
   }
 
   private switchNestedState(transition: Transition<State, Event, Context>) {
-    if (!this._states) {
-      return;
-    }
-
-    if (!(transition.to in this._states)) {
-      this._activeChild = null;
-      this._activeParallelState = null;
-      return;
-    }
-
-    let child = this._states[transition.to as keyof typeof this._states];
+    let child = this._states.get(transition.to);
 
     if (!child) {
+      this._activeChild = null;
+      this._activeParallelState = null;
       return;
     }
 
