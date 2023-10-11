@@ -37,27 +37,23 @@ class TrafficLight extends StateMachine<
 
     this.addNestedMachine(
       State.red,
-      nested(
-        {
-          id: 'crosswalk',
-          initial: CrosswalkStates.dontWalk,
-          transitions: [
-            t(
-              CrosswalkStates.dontWalk,
-              CrosswalkEvents.toggle,
-              CrosswalkStates.walk,
-            ),
-            t(
-              CrosswalkStates.walk,
-              CrosswalkEvents.toggle,
-              CrosswalkStates.dontWalk,
-            ),
-          ],
-        },
-        {
-          history: 'none',
-        },
-      ),
+      nested({
+        id: 'crosswalk',
+        initial: CrosswalkStates.dontWalk,
+        transitions: [
+          t(
+            CrosswalkStates.dontWalk,
+            CrosswalkEvents.toggle,
+            CrosswalkStates.walk,
+          ),
+          t(
+            CrosswalkStates.walk,
+            CrosswalkEvents.toggle,
+            CrosswalkStates.dontWalk,
+          ),
+        ],
+        history: 'none',
+      }),
     );
   }
 }

@@ -636,28 +636,22 @@ describe('StateMachine', () => {
             NestedStates,
             NestedEvents,
             FsmContext<{ test: string }>
-          >(
-            {
-              id: 'nested-fsm',
-              initial: NestedStates.dontWalk,
-              transitions: [
-                t(
-                  NestedStates.dontWalk,
-                  NestedEvents.toggle,
-                  NestedStates.walk,
-                ),
+          >({
+            id: 'nested-fsm',
+            history: 'none',
+            initial: NestedStates.dontWalk,
+            transitions: [
+              t(NestedStates.dontWalk, NestedEvents.toggle, NestedStates.walk),
+            ],
+            data: () => ({ test: 'bar' }),
+            subscribers: {
+              [NestedEvents.toggle]: [
+                (context) => {
+                  context.data.test = 'foo';
+                },
               ],
-              data: () => ({ test: 'bar' }),
-              subscribers: {
-                [NestedEvents.toggle]: [
-                  (context) => {
-                    context.data.test = 'foo';
-                  },
-                ],
-              },
             },
-            { history: 'none' },
-          ),
+          }),
         }),
       });
 

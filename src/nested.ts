@@ -1,15 +1,35 @@
-import { StateMachineParameters, StateMachine } from './fsm';
+import { StateMachineParameters, _NestedStateMachine } from './fsm';
 import {
   AllowedNames,
   FsmContext,
   HistoryTypes,
-  NestedState,
+  IStateMachine,
   ParallelState,
 } from './types';
 
-export interface INestedOptions {
+export interface INestedStateMachineParameters<
+  State extends AllowedNames,
+  Event extends AllowedNames,
+  Context extends FsmContext<object>,
+> extends StateMachineParameters<State, Event, Context> {
   history?: HistoryTypes;
 }
+
+export type NestedStateMachineConstructor = {
+  new <
+    State extends AllowedNames,
+    Event extends AllowedNames,
+    Context extends FsmContext<object> = FsmContext<never>,
+  >(
+    parameters: StateMachineParameters<State, Event, Context>,
+  ): IStateMachine<State, Event, Context> & {
+    readonly history: HistoryTypes;
+    readonly type: 'nested';
+  };
+};
+
+export const NestedStateMachine =
+  _NestedStateMachine as unknown as NestedStateMachineConstructor;
 
 /**
  * Creates a nested state machine.
@@ -22,20 +42,17 @@ export function nested<
   const State extends AllowedNames,
   const Event extends AllowedNames,
   Context extends FsmContext<object>,
->(
-  machineParameters: StateMachineParameters<State, Event, Context>,
-  { history = 'deep' }: INestedOptions = {},
-): NestedState<any> {
-  return {
-    type: 'nested',
-    machine: new StateMachine(machineParameters),
-    history,
-  };
+>(machineParameters: INestedStateMachineParameters<State, Event, Context>) {
+  return new NestedStateMachine(machineParameters);
 }
 
-export function parallel(
-  ...nested: Array<NestedState<any>>
-): ParallelState<NestedState<any>> {
+export function parallel<
+  const State extends AllowedNames,
+  const Event extends AllowedNames,
+  Context extends FsmContext<object>,
+>(
+  ...nested: Array<_NestedStateMachine<State, Event, Context>>
+): ParallelState<State, Event, Context> {
   return {
     type: 'parallel',
     machines: nested,

@@ -1,4 +1,5 @@
 import { _StateMachine } from './fsm';
+import { _NestedStateMachine } from './nested';
 
 export type AllowedNames = string | number;
 
@@ -76,19 +77,11 @@ export type IStateMachine<
 
 export type HistoryTypes = 'none' | 'deep';
 
-export interface NestedState<
-  NestedStatedStateMachine extends IStateMachine<
-    AllowedNames,
-    AllowedNames,
-    FsmContext<object>
-  >,
+export interface ParallelState<
+  State extends AllowedNames,
+  Event extends AllowedNames,
+  Context extends FsmContext<object>,
 > {
-  type: 'nested';
-  machine: NestedStatedStateMachine;
-  history: HistoryTypes;
-}
-
-export interface ParallelState<_NestedState extends NestedState<any>> {
   type: 'parallel';
-  machines: Array<_NestedState>;
+  machines: Array<_NestedStateMachine<State, Event, Context>>;
 }
