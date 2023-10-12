@@ -823,10 +823,6 @@ export class _StateMachine<
       return;
     }
 
-    if (!child) {
-      return;
-    }
-
     switch (child.history) {
       case 'none': {
         this._activeChild = new _NestedStateMachine(child._initialParameters);

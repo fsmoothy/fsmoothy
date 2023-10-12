@@ -1,5 +1,4 @@
-import { _StateMachine } from './fsm';
-import { _NestedStateMachine } from './nested';
+import { _StateMachine, _NestedStateMachine } from './fsm';
 
 export type AllowedNames = string | number;
 
