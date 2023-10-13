@@ -74,6 +74,15 @@ export type IStateMachine<
   StateMachineCheckers<State> &
   StateMachineTransitionCheckers<Event>;
 
+export type INestedStateMachine<
+  State extends AllowedNames,
+  Event extends AllowedNames,
+  Context extends FsmContext<object>,
+> = _NestedStateMachine<State, Event, Context> &
+  StateMachineEvents<Event> &
+  StateMachineCheckers<State> &
+  StateMachineTransitionCheckers<Event>;
+
 export type HistoryTypes = 'none' | 'deep';
 
 export interface ParallelState<
@@ -82,5 +91,5 @@ export interface ParallelState<
   Context extends FsmContext<object>,
 > {
   type: 'parallel';
-  machines: Array<_NestedStateMachine<State, Event, Context>>;
+  machines: Array<INestedStateMachine<State, Event, Context>>;
 }

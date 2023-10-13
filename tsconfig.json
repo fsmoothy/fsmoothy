@@ -13,6 +13,7 @@
     "resolveJsonModule": true,
     "declaration": true,
     "strict": true,
+    "removeComments": true,
     "strictPropertyInitialization": false,
     "importHelpers": true,
   },

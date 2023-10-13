@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { StateMachine } from '../fsm';
-import { nested, parallel } from '../nested';
+import { NestedStateMachine, nested, parallel } from '../nested';
 import { All } from '../symbols';
 import { t } from '../transition';
 
@@ -818,6 +818,79 @@ describe('StateMachine', () => {
       await expect(fsm.toggle()).rejects.toThrow(
         'Event toggle is not allowed in state red of fsm',
       );
+    });
+
+    it('should inherit context from parent FSM', async () => {
+      const service = vi.fn().mockResolvedValue({ foo: 'bar' });
+      const parentService = vi.fn().mockResolvedValue({ foo: 'test' });
+
+      type BaseFSMContext = FsmContext<{ test: string }> & {
+        parentService: typeof parentService;
+      };
+      type NestedFSMContext = BaseFSMContext & {
+        service: typeof service;
+      };
+
+      class NestedFSM extends NestedStateMachine<
+        NestedStates,
+        NestedEvents,
+        NestedFSMContext
+      > {
+        constructor() {
+          super({
+            id: 'nested-fsm',
+            initial: NestedStates.dontWalk,
+            transitions: [
+              t(NestedStates.dontWalk, NestedEvents.toggle, NestedStates.walk),
+            ],
+          });
+        }
+      }
+
+      const fsm = new StateMachine<
+        State | NestedStates,
+        Event | NestedEvents,
+        BaseFSMContext
+      >({
+        id: 'fsm',
+        initial: State.green,
+        data: () => ({ test: 'bar' }),
+        transitions: [
+          t(State.green, Event.next, State.yellow),
+          t(State.yellow, Event.next, State.red),
+          t(State.red, Event.next, State.green),
+        ],
+        states: () => {
+          const nested = new NestedFSM();
+          const nestedInNested = new NestedFSM();
+          nested.addNestedMachine(NestedStates.walk, nestedInNested);
+          nested.inject('service', service);
+
+          nestedInNested.on(All, (context) => {
+            context.service();
+            context.parentService();
+          });
+
+          return {
+            [State.red]: nested,
+          };
+        },
+      });
+
+      fsm.inject('parentService', parentService);
+
+      await fsm.next();
+      await fsm.next();
+
+      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.child).toBeTruthy();
+
+      await fsm.toggle();
+      await fsm.toggle();
+      expect(fsm.child?.child).toBeTruthy();
+      expect(fsm.child?.child?.is(NestedStates.walk)).toBe(true);
+      expect(service).toHaveBeenCalledTimes(1);
+      expect(parentService).toHaveBeenCalledTimes(1);
     });
   });
 

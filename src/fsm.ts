@@ -12,6 +12,7 @@ import {
   IStateMachine,
   ParallelState,
   HistoryTypes,
+  INestedStateMachine,
 } from './types';
 
 type Nested = _NestedStateMachine<any, any, any> | ParallelState<any, any, any>;
@@ -112,9 +113,10 @@ export class _StateMachine<
   const Event extends AllowedNames,
   Context extends FsmContext<object>,
 > {
+  protected _context = {} as Context;
+
   private _last: Transition<State, Event, Context>;
   private _id: string;
-  private _context = {} as Context;
   private _contextPromise: Promise<Context> | null = null;
   private _boundTo: any = this;
   private _dataPromise: Promise<Context['data']> | null = null;
@@ -122,11 +124,8 @@ export class _StateMachine<
   /**
    * For nested state machines.
    */
-  private _activeChild: _NestedStateMachine<
-    AllowedNames,
-    AllowedNames,
-    FsmContext<object>
-  > | null = null;
+  private _activeChild: INestedStateMachine<State, Event, Context> | null =
+    null;
   private _activeParallelState: ParallelState<State, Event, Context> | null =
     null;
   private _states: States<State>;
@@ -176,6 +175,10 @@ export class _StateMachine<
    */
   public get data(): Context['data'] {
     return this._context.data;
+  }
+
+  public get context(): Context {
+    return this._context;
   }
 
   /**
@@ -247,11 +250,13 @@ export class _StateMachine<
    * @param nestedState - Nested state machine.
    */
   public addNestedMachine(state: State, nestedState: Nested) {
+    this._states.set(state, nestedState);
+
     if (nestedState.type === 'parallel') {
       return this;
     }
 
-    this._states.set(state, nestedState);
+    (nestedState as any)._parent = this;
 
     const nestedEvents = nestedState.events;
 
@@ -302,6 +307,10 @@ export class _StateMachine<
     event: Event,
     ...arguments_: Arguments
   ) {
+    if (await this._activeChild?.can(event, ...arguments_)) {
+      return true;
+    }
+
     const transitionsByState = this._transitions.get(event);
 
     // check has from: all
@@ -538,9 +547,11 @@ export class _StateMachine<
     const children = this._activeParallelState?.machines ?? [this._activeChild];
 
     for (const child of children) {
-      if (await child?.can(event, ...arguments_)) {
+      if (child && (await child.can(event, ...arguments_))) {
+        const _child: any = child;
+
+        this._activeChild = _child;
         await child?.transition(event, ...arguments_);
-        this._activeChild = child as any;
         hasExecuted = true;
       }
     }
@@ -639,6 +650,7 @@ export class _StateMachine<
     }
 
     for (const [state, nested] of Object.entries(statesFromParameters ?? {})) {
+      (nested as any)._parent = this;
       states.set(state as State, nested as Nested);
     }
 
@@ -825,11 +837,13 @@ export class _StateMachine<
 
     switch (child.history) {
       case 'none': {
-        this._activeChild = new _NestedStateMachine(child._initialParameters);
+        this._activeChild = new _NestedStateMachine(
+          child._initialParameters,
+        ) as any;
         break;
       }
       case 'deep': {
-        this._activeChild = child;
+        this._activeChild = child as any;
       }
     }
   }
@@ -847,20 +861,20 @@ export class _StateMachine<
     const allSubscribers = this._subscribers.get(All);
 
     try {
-      await this._last.onLeave?.(this._context, ...arguments_);
-      await onEnter?.(this._context, ...arguments_);
+      await this._last.onLeave?.(this.context, ...arguments_);
+      await onEnter?.(this.context, ...arguments_);
       this.makeTransition(transition);
       this.switchNestedState(transition);
 
       for (const subscriber of subscribers?.values() ?? []) {
-        await subscriber(this._context, ...arguments_);
+        await subscriber(this.context, ...arguments_);
       }
 
       for (const subscriber of allSubscribers?.values() ?? []) {
-        await subscriber(this._context, ...arguments_);
+        await subscriber(this.context, ...arguments_);
       }
 
-      await onExit?.(this._context, ...arguments_);
+      await onExit?.(this.context, ...arguments_);
     } catch (error) {
       if (error instanceof StateMachineError) {
         throw error;
@@ -890,6 +904,7 @@ export class _NestedStateMachine<
   const Event extends AllowedNames,
   Context extends FsmContext<object>,
 > extends _StateMachine<State, Event, Context> {
+  protected _parent: _StateMachine<any, any, any> | null = null;
   public readonly type = 'nested';
   public readonly history: HistoryTypes;
 
@@ -898,6 +913,10 @@ export class _NestedStateMachine<
   ) {
     super(parameters);
     this.history = parameters.history ?? 'deep';
+  }
+
+  public get context() {
+    return { ...this._parent?.context, ...this._context };
   }
 }
 
