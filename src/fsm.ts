@@ -42,7 +42,7 @@ export interface StateMachineParameters<
     parameters: StateMachineParameters<State, Event, Context>,
   ) => Context['data'] | Promise<Context['data']>;
   readonly initial: State;
-  readonly transitions: [
+  readonly transitions?: [
     Transition<State, Event, Context>,
     ...Array<Transition<State, Event, Context>>,
   ];
@@ -638,7 +638,7 @@ export class _StateMachine<
     const states = new Map<State, Nested | null>();
     const statesFromParameters = parameters.states?.(parameters);
 
-    for (const { from, to } of parameters.transitions) {
+    for (const { from, to } of parameters.transitions ?? []) {
       if (Array.isArray(from)) {
         for (const state of from) {
           states.set(state, null);
@@ -658,28 +658,30 @@ export class _StateMachine<
   }
 
   private prepareTransitions(
-    transitions: Array<Transition<State, Event, Context>>,
+    transitions?: Array<Transition<State, Event, Context>>,
   ) {
-    return transitions.reduce((accumulator, transition) => {
-      const { from, event } = transition;
-      const froms = Array.isArray(from) ? from : [from];
+    return (
+      transitions?.reduce((accumulator, transition) => {
+        const { from, event } = transition;
+        const froms = Array.isArray(from) ? from : [from];
 
-      if (!accumulator.has(event)) {
-        accumulator.set(event, new Map());
-      }
-
-      const transitionsByState = accumulator.get(event);
-
-      for (const from of froms) {
-        if (!transitionsByState?.has(from)) {
-          transitionsByState?.set(from, []);
+        if (!accumulator.has(event)) {
+          accumulator.set(event, new Map());
         }
 
-        transitionsByState?.get(from)?.push(this.bindToCallbacks(transition));
-      }
+        const transitionsByState = accumulator.get(event);
 
-      return accumulator;
-    }, new Map());
+        for (const from of froms) {
+          if (!transitionsByState?.has(from)) {
+            transitionsByState?.set(from, []);
+          }
+
+          transitionsByState?.get(from)?.push(this.bindToCallbacks(transition));
+        }
+
+        return accumulator;
+      }, new Map()) ?? new Map()
+    );
   }
 
   /**
@@ -718,7 +720,7 @@ export class _StateMachine<
     });
 
     const events = new Set([
-      ...parameters.transitions.map((t) => t.event),
+      ...(parameters.transitions?.map((t) => t.event) ?? []),
       ...nestedEvents,
     ]);
 
@@ -789,8 +791,8 @@ export class _StateMachine<
     });
 
     const states = new Set([
-      ...parameters.transitions.map((t) => t.from),
-      ...parameters.transitions.map((t) => t.to),
+      ...(parameters.transitions?.map((t) => t.from) ?? []),
+      ...(parameters.transitions?.map((t) => t.to) ?? []),
       ...nestedStates,
     ]);
 

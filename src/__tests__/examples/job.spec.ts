@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { StateMachine, t, FsmContext } from '../..';
+import { StateMachine, FsmContext } from '../..';
 
 enum States {
   Sleeping = 'sleeping',
@@ -28,21 +28,24 @@ class JobStatus extends StateMachine<States, Events, FsmContext<IContext>> {
           isCleanerAvailable,
         };
       },
-      transitions: [
-        t(States.Sleeping, Events.Run, States.Running, {
-          onExit(context) {
-            context.data.isCleanerAvailable = true;
-          },
-        }),
-        t(States.Running, Events.Clean, States.Cleaning, {
-          guard: (context) => context.data.isCleanerAvailable,
-          onExit(context) {
-            context.data.isCleanerAvailable = false;
-          },
-        }),
-        t([States.Cleaning, States.Running], Events.Sleep, States.Sleeping),
-      ],
     });
+
+    this.addTransition(States.Sleeping, Events.Run, States.Running, {
+      onExit(context) {
+        context.data.isCleanerAvailable = true;
+      },
+    })
+      .addTransition(States.Running, Events.Clean, States.Cleaning, {
+        guard: (context) => context.data.isCleanerAvailable,
+        onExit(context) {
+          context.data.isCleanerAvailable = false;
+        },
+      })
+      .addTransition(
+        [States.Cleaning, States.Running],
+        Events.Sleep,
+        States.Sleeping,
+      );
   }
 }
 
