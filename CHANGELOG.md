@@ -1,3 +1,25 @@
+# [1.8.0](https://github.com/fsmoothy/fsmoothy/compare/v1.7.1...v1.8.0) (2023-10-17)
+
+
+### Bug Fixes
+
+* wrong type export ([bafcf65](https://github.com/fsmoothy/fsmoothy/commit/bafcf658ceddae5938388a1c0d8f39488eba426e))
+
+
+### Features
+
+* add inject for di functionality ([0ce36b2](https://github.com/fsmoothy/fsmoothy/commit/0ce36b2d064158ddc7fffad7d803b79b272dde35))
+* add remove transition method ([f97ebe6](https://github.com/fsmoothy/fsmoothy/commit/f97ebe6002de3b927d6d971c43a35654eecd80bf))
+* add removeState to remove nested fsm ([0638a34](https://github.com/fsmoothy/fsmoothy/commit/0638a34297edbdef54433e31c4a4a69af7afb31a))
+* allow define fsm without transitions ([a0f209b](https://github.com/fsmoothy/fsmoothy/commit/a0f209b90289bf76ee8bb2ad7099e54f14efbd55))
+* allow nested parallel state ([72641d1](https://github.com/fsmoothy/fsmoothy/commit/72641d1e292bde9550cdd64868c6d9017b0cf083))
+* inherit context from parent FSM in nested fsm ([55555a0](https://github.com/fsmoothy/fsmoothy/commit/55555a04da41ab835b8df99923863e81dfcd4ef6))
+* injectAsync now returns this to chain ([e09fa3b](https://github.com/fsmoothy/fsmoothy/commit/e09fa3b52004b8a33352697ca869575820c579ea))
+* make more consistent api for addTransition ([9d91dba](https://github.com/fsmoothy/fsmoothy/commit/9d91dba711b70ce1fd8268a70cf1dd8d36e8aeee))
+* make nested fsm interface more consistent ([3e844fe](https://github.com/fsmoothy/fsmoothy/commit/3e844feb90836cb013401cb4c98b44c7d420fd14))
+* move ctx to data property, nest data to context ([cdac602](https://github.com/fsmoothy/fsmoothy/commit/cdac6025c25bfacf64de07f5c6e2721f28dada3f))
+* use never as default for context ([009bb02](https://github.com/fsmoothy/fsmoothy/commit/009bb02747161fbc0663c2ef41918956612c6ec1))
+
 ## [1.7.1](https://github.com/fsmoothy/fsmoothy/compare/v1.7.0...v1.7.1) (2023-09-28)
 
 

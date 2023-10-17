@@ -1,6 +1,6 @@
 {
   "name": "fsmoothy",
-  "version": "1.7.1",
+  "version": "1.8.0",
   "description": "The Smoothie Sipper 3000: A Hilarious Typed State Machine for Maximum Smoothie Drinking Fun!",
   "main": "./index.js",
   "types": "./index.d.ts",
