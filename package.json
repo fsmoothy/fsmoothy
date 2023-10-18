@@ -1,6 +1,6 @@
 {
   "name": "fsmoothy",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "FSMoothy is a feature-rich and easy-to-use finite state machine for TypeScript.",
   "main": "./index.js",
   "types": "./index.d.ts",

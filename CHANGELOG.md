@@ -1,3 +1,10 @@
+## [1.8.1](https://github.com/fsmoothy/fsmoothy/compare/v1.8.0...v1.8.1) (2023-10-18)
+
+
+### Bug Fixes
+
+* propagate injected context to history: none child ([3030908](https://github.com/fsmoothy/fsmoothy/commit/3030908282fb39a0a8f9c47f00df421aef70a6f9))
+
 # [1.8.0](https://github.com/fsmoothy/fsmoothy/compare/v1.7.1...v1.8.0) (2023-10-17)
 
 
