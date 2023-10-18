@@ -1,7 +1,7 @@
 {
   "name": "fsmoothy",
   "version": "1.8.0",
-  "description": "The Smoothie Sipper 3000: A Hilarious Typed State Machine for Maximum Smoothie Drinking Fun!",
+  "description": "FSMoothy is a feature-rich and easy-to-use finite state machine for TypeScript.",
   "main": "./index.js",
   "types": "./index.d.ts",
   "repository": {

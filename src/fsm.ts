@@ -841,6 +841,7 @@ export class _StateMachine<
       case 'none': {
         this._activeChild = new _NestedStateMachine(
           child._initialParameters,
+          this,
         ) as any;
         break;
       }
@@ -906,12 +907,12 @@ export class _NestedStateMachine<
   const Event extends AllowedNames,
   Context extends FsmContext<object>,
 > extends _StateMachine<State, Event, Context> {
-  protected _parent: _StateMachine<any, any, any> | null = null;
   public readonly type = 'nested';
   public readonly history: HistoryTypes;
 
   constructor(
     parameters: INestedStateMachineParameters<State, Event, Context>,
+    protected _parent: _StateMachine<any, any, any> | null = null,
   ) {
     super(parameters);
     this.history = parameters.history ?? 'deep';

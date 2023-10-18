@@ -497,6 +497,45 @@ describe('StateMachine', () => {
         asyncService,
       });
     });
+
+    it('should propagate context even its history: none nested fsm', async () => {
+      const service = vi.fn().mockResolvedValue({ foo: 'bar' });
+      const callback = vi.fn();
+
+      const stateMachine = new StateMachine<
+        State,
+        Event,
+        FsmContext<{ foo: string }> & {
+          service: typeof service;
+        }
+      >({
+        initial: State.idle,
+        data: () => ({ foo: 'bar' }),
+        transitions: [t(State.idle, Event.fetch, State.pending)],
+        inject: {
+          service: () => service,
+        },
+        states: () => ({
+          [State.pending]: nested({
+            id: 'nested-fsm',
+            history: 'none',
+            initial: State.idle,
+            transitions: [t(State.idle, Event.fetch, State.pending)],
+            subscribers: {
+              [Event.fetch]: [callback],
+            },
+          }),
+        }),
+      });
+
+      await stateMachine.fetch();
+      await stateMachine.fetch();
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith({
+        data: {},
+        service,
+      });
+    });
   });
 
   describe('nested', () => {
