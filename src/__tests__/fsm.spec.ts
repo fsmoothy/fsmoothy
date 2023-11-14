@@ -1011,6 +1011,17 @@ describe('StateMachine', () => {
         }),
       });
 
+      const test = parallel(
+        nested({
+          id: 'nested-fsm3',
+          initial: State.red,
+          transitions: [t(State.red, Event.next, State.yellow)],
+        }),
+      );
+      test.machines[0].states;
+
+      fsm.child?.is(NestedStates.walk);
+
       await fsm.next();
       await fsm.next();
       expect(fsm.is(State.red)).toBe(true);

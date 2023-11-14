@@ -42,7 +42,9 @@ export function nested<
   const State extends AllowedNames,
   const Event extends AllowedNames,
   Context extends FsmContext<object>,
->(machineParameters: INestedStateMachineParameters<State, Event, Context>) {
+>(
+  machineParameters: INestedStateMachineParameters<State, Event, Context>,
+): INestedStateMachine<State, Event, Context> {
   return new NestedStateMachine(machineParameters);
 }
 

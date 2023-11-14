@@ -124,10 +124,8 @@ export class _StateMachine<
   /**
    * For nested state machines.
    */
-  private _activeChild: INestedStateMachine<State, Event, Context> | null =
-    null;
-  private _activeParallelState: ParallelState<State, Event, Context> | null =
-    null;
+  private _activeChild: INestedStateMachine<any, any, any> | null = null;
+  private _activeParallelState: ParallelState<any, any, any> | null = null;
   private _states: States<State>;
 
   /**
