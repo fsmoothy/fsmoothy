@@ -398,7 +398,6 @@ export class _StateMachine<
 
     const event = eventOrCallback;
     if (!this._subscribers.has(event)) {
-      console.warn(`Event ${String(event)} is not subscribed in ${this._id}`);
       return;
     }
 

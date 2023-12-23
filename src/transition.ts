@@ -26,18 +26,18 @@ function _noop() {
  * @param options - Transition options.
  */
 export const t = <
-  State extends AllowedNames,
+  const State extends AllowedNames,
   const Event extends AllowedNames,
   Context extends FsmContext<object> = FsmContext<object>,
 >(
-  from: Array<State> | State,
+  from: ReadonlyArray<State> | State,
   event: Event,
   to: State,
   guardOrOptions?: Guard<Context> | TransitionOptions<Context>,
 ): Transition<State, Event, Context> => {
   if (typeof guardOrOptions === 'function') {
     return {
-      from,
+      from: from as Array<State> | State,
       event,
       to,
       onLeave: _noop,
@@ -57,7 +57,7 @@ export const t = <
 
   return {
     ...rest,
-    from,
+    from: from as Array<State> | State,
     event,
     to,
     onLeave,
