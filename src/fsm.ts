@@ -122,10 +122,14 @@ export class _StateMachine<
   private _dataPromise: Promise<Context['data']> | null = null;
 
   /**
-   * For nested state machines.
+   * Active nested state machine.
    */
   private _activeChild: INestedStateMachine<any, any, any> | null = null;
+  /**
+   * Active parallel state machine.
+   */
   private _activeParallelState: ParallelState<any, any, any> | null = null;
+
   private _states: States<State>;
 
   /**
@@ -175,6 +179,9 @@ export class _StateMachine<
     return this._context.data;
   }
 
+  /**
+   * Context object.
+   */
   public get context(): Context {
     return this._context;
   }
@@ -202,6 +209,7 @@ export class _StateMachine<
 
   /**
    * Add transition to the state machine.
+   *
    * @param transition - Transition to add.
    * @returns New state machine.
    */
@@ -273,6 +281,8 @@ export class _StateMachine<
 
   /**
    * Removes all nested state machines by state.
+   *
+   * @param state - State to remove.
    */
   public removeState(state: State) {
     if (this.current === state) {
@@ -287,6 +297,7 @@ export class _StateMachine<
 
   /**
    * Checks if the state machine is in the given state.
+   *
    * @param state - State to check.
    */
   public is(state: State): boolean {
@@ -299,6 +310,7 @@ export class _StateMachine<
 
   /**
    * Checks if the event can be triggered in the current state.
+   *
    * @param event - Event to check.
    */
   public async can<Arguments extends Array<unknown> = Array<unknown>>(
@@ -350,7 +362,8 @@ export class _StateMachine<
    * @param callback - Callback to execute.
    *
    * @overload
-   * Subscribe to all events.
+   * Without providing event will subscribe to `All` event.
+   *
    * @param callback - Callback to execute.
    */
   public on(event: Event, callback: Callback<Context>): this;
@@ -379,11 +392,13 @@ export class _StateMachine<
 
   /**
    * Unsubscribe from event.
+   *
    * @param event - Event to unsubscribe from.
    * @param callback - Callback to unsubscribe.
    *
    * @overload
    * Unsubscribe from `All` event.
+   *
    * @param callback - Callback to unsubscribe.
    */
   public off(event: Event, callback: Callback<Context>): this;
@@ -509,6 +524,9 @@ export class _StateMachine<
 
   /**
    * Injects service into the state machine context using factory function.
+   *
+   * @param key - Key to inject.
+   * @param service - Service factory function.
    */
   public injectAsync<const Key extends keyof Omit<Context, 'data'>>(
     key: Key,

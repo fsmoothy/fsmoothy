@@ -6,19 +6,15 @@ export type FsmContext<D extends object = never> = {
   data: D;
 };
 
-export interface Callback<
+export type Callback<
   Context extends FsmContext<object>,
   T extends Array<any> = Array<any>,
-> {
-  (context: Context, ...arguments_: T): Promise<void> | void;
-}
+> = (context: Context, ...arguments_: T) => Promise<void> | void;
 
-export interface Guard<
+export type Guard<
   Context extends FsmContext<object>,
   T extends Array<any> = Array<any>,
-> {
-  (context: Context, ...arguments_: T): Promise<boolean> | boolean;
-}
+> = (context: Context, ...arguments_: T) => Promise<boolean> | boolean;
 
 export interface Transition<
   State extends AllowedNames | Array<AllowedNames>,
@@ -45,7 +41,7 @@ type StateMachineEvents<Event extends AllowedNames> = {
   /**
    * @param arguments_ - Arguments to pass to lifecycle hooks.
    */
-  [key in Event]: <T extends Array<unknown>>(...arguments_: T) => Promise<void>;
+  [key in Event]: (...arguments_: Array<unknown>) => Promise<void>;
 };
 
 type CapitalizeString<S> = S extends symbol
@@ -58,7 +54,9 @@ type StateMachineTransitionCheckers<Event extends AllowedNames> = {
   /**
    * @param arguments_ - Arguments to pass to guard.
    */
-  [key in `can${CapitalizeString<Event>}`]: () => Promise<boolean>;
+  [key in `can${CapitalizeString<Event>}`]: (
+    ...arguments_: Array<unknown>
+  ) => Promise<boolean>;
 };
 
 type StateMachineCheckers<State extends AllowedNames> = {
