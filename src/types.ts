@@ -47,8 +47,8 @@ type StateMachineEvents<Event extends AllowedNames> = {
 type CapitalizeString<S> = S extends symbol
   ? never
   : S extends string
-  ? Capitalize<S>
-  : S;
+    ? Capitalize<S>
+    : S;
 
 type StateMachineTransitionCheckers<Event extends AllowedNames> = {
   /**
