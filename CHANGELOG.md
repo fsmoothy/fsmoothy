@@ -1,3 +1,12 @@
+# [1.9.0](https://github.com/fsmoothy/fsmoothy/compare/v1.8.1...v1.9.0) (2023-12-27)
+
+
+### Features
+
+* improve arguments typing ([d6991ee](https://github.com/fsmoothy/fsmoothy/commit/d6991eeef5ed32327385b6f29f7bcbdda93c66c1))
+* improve nested fsm typing ([23a8646](https://github.com/fsmoothy/fsmoothy/commit/23a86468276b42631e86aca4e7763d592aa980aa))
+* remove extra console logs ([9bdd820](https://github.com/fsmoothy/fsmoothy/commit/9bdd8207f318308cc601fa0f496b00dc8c73ea65))
+
 ## [1.8.1](https://github.com/fsmoothy/fsmoothy/compare/v1.8.0...v1.8.1) (2023-10-18)
 
 
