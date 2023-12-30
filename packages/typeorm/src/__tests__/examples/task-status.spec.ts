@@ -1,4 +1,4 @@
-import { FsmContext } from '@fsmoothy/core/types';
+import { FsmContext } from '@fsmoothy/core';
 import {
   Entity,
   PrimaryGeneratedColumn,

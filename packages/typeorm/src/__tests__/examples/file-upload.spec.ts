@@ -21,29 +21,38 @@ enum FileEvent {
   fail = 'fail',
 }
 
+interface IFile {
+  id: string;
+  status: FileState;
+  url: string | null;
+}
+
 @Entity('file')
-class File extends StateMachineEntity({
-  status: state({
-    id: 'fileStatus',
-    initial: FileState.pending,
-    transitions: [
-      t(FileState.pending, FileEvent.start, FileState.uploading),
-      t(FileState.uploading, FileEvent.finish, FileState.completed, {
-        async guard(this: File, _context, url: string) {
-          return (this.url !== url) as boolean;
-        },
-        async onEnter(this: File, _context, url: string | null) {
-          this.url = url;
-        },
-      }),
-      t(
-        [FileState.pending, FileState.uploading],
-        FileEvent.fail,
-        FileState.failed,
-      ),
-    ],
-  }),
-}) {
+class File
+  extends StateMachineEntity({
+    status: state({
+      id: 'fileStatus',
+      initial: FileState.pending,
+      transitions: [
+        t(FileState.pending, FileEvent.start, FileState.uploading),
+        t(FileState.uploading, FileEvent.finish, FileState.completed, {
+          async guard(this: IFile, _context, url: string) {
+            return this.url !== url;
+          },
+          async onEnter(this: File, _context, url: string | null) {
+            this.url = url;
+          },
+        }),
+        t(
+          [FileState.pending, FileState.uploading],
+          FileEvent.fail,
+          FileState.failed,
+        ),
+      ],
+    }),
+  })
+  implements IFile
+{
   @PrimaryGeneratedColumn()
   id: string;
 
