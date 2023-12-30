@@ -1,24 +1,18 @@
 {
+  "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
-    "types": [
-      "node"
-    ],
+    "moduleResolution": "node",
     "module": "commonjs",
-    "target": "ES2022",
-    "outDir": "./dist",
-    "baseUrl": "./",
+    "target": "esnext",
     "sourceMap": true,
+    "strict": true,
+    "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "declaration": true,
-    "strict": true,
     "removeComments": true,
     "strictPropertyInitialization": false,
     "importHelpers": true
   },
-  "include": [
-    "src/**/*",
-    "./vitest.config.ts"
-  ]
 }

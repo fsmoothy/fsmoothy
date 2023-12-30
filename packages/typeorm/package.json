@@ -1,0 +1,63 @@
+{
+  "name": "@fsmoothy/typeorm",
+  "version": "1.0.0",
+  "private": false,
+  "author": "Vassiliy Kuzenkov (bondiano)",
+  "license": "MIT",
+  "description": "Strong typed state machine for your TypeORM Entities",
+  "readme": "README.md",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fsmoothy/fsmoothy.git"
+  },
+  "source": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "types": "./dist/index.d.ts",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js"
+  },
+  "keywords": [
+    "typeorm",
+    "fsm",
+    "state-machine"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "dev": "npm run build -- --watch",
+    "prebuild": "npm run clean",
+    "build": "tsc --project tsconfig.build.json",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "coverage": "vitest --coverage",
+    "docs:build": "typedoc src/index.ts --tsconfig tsconfig.build.json",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "better-sqlite3": "^8.7.0",
+    "typedoc": "^0.25.4",
+    "typedoc-plugin-extras": "^3.0.0",
+    "typedoc-plugin-mermaid": "^1.10.0",
+    "typedoc-plugin-replace-text": "^3.2.0"
+  },
+  "peerDependencies": {
+    "typeorm": "^0.3.17"
+  },
+  "commit": "cz",
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "dependencies": {
+    "@fsmoothy/core": "1.0.0"
+  },
+  "files": [
+    "/package.json",
+    "/dist"
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "name": "@fsmoothy/core",
+  "version": "1.0.0",
+  "private": false,
+  "description": "FSMoothy is a feature-rich and easy-to-use finite state machine for TypeScript.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "source": "./src/index.ts",
+  "exports": {
+    "types": "./dist/index.d.ts",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js"
+  },
+  "readme": "README.md",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fsmoothy/fsmoothy.git"
+  },
+  "keywords": [
+    "fsm",
+    "state-machine",
+    "typescript"
+  ],
+  "author": "Vassiliy Kuzenkov (bondiano)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/fsmoothy/fsmoothy/issues"
+  },
+  "homepage": "https://github.com/fsmoothy/fsmoothy#readme",
+  "scripts": {
+    "dev": "npm run build -- --watch",
+    "prebuild": "npm run clean",
+    "build": "tsc --project tsconfig.build.json",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "coverage": "vitest --coverage",
+    "docs:build": "typedoc src/index.ts --tsconfig tsconfig.build.json",
+    "postdocs:build": "cp -r logo docs",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typedoc": "^0.25.4",
+    "typedoc-plugin-extras": "^3.0.0",
+    "typedoc-plugin-mermaid": "^1.10.0",
+    "typedoc-plugin-replace-text": "^3.2.0"
+  },
+  "files": [
+    "/package.json",
+    "/dist"
+  ]
+}
