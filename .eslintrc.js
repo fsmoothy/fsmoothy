@@ -170,7 +170,6 @@ module.exports = {
         '@typescript-eslint/prefer-nullish-coalescing': ERROR,
         '@typescript-eslint/prefer-optional-chain': ERROR,
         'no-return-await': OFF,
-        '@typescript-eslint/return-await': [ERROR, 'always'],
       },
     },
     {
