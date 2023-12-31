@@ -14,7 +14,8 @@
     "test": "turbo test",
     "update": "npx npm-check-updates -u",
     "prepare": "husky install",
-    "publish-packages": "turbo run build lint test && changeset version && changeset publish"
+    "version-packages": "changeset version",
+    "release": "npm run build && changeset publish"
   },
   "workspaces": [
     "packages/*"
