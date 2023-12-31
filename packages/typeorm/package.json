@@ -36,14 +36,6 @@
     "docs:build": "typedoc src/index.ts --tsconfig tsconfig.build.json",
     "clean": "rm -rf dist"
   },
-  "devDependencies": {
-    "@types/better-sqlite3": "^7.6.8",
-    "better-sqlite3": "^8.7.0",
-    "typedoc": "^0.25.4",
-    "typedoc-plugin-extras": "^3.0.0",
-    "typedoc-plugin-mermaid": "^1.10.0",
-    "typedoc-plugin-replace-text": "^3.2.0"
-  },
   "peerDependencies": {
     "typeorm": "^0.3.17"
   },

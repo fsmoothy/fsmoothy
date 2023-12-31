@@ -61,12 +61,15 @@ class VendingMachine extends StateMachine<
                 ?.price ?? 0;
           },
           guard(context) {
-            return Boolean(
-              context.data.selectedProductId &&
-                context.data.depositedCoins >=
-                  (context.data.products.get(context.data.selectedProductId)
-                    ?.price ?? 0),
-            );
+            if (!context.data.selectedProductId) {
+              return false;
+            }
+
+            const productPrice =
+              context.data.products.get(context.data.selectedProductId)
+                ?.price ?? 0;
+
+            return Boolean(context.data.depositedCoins >= productPrice);
           },
         }),
         t(State.Dispensing, Event.Reset, State.Idle),

@@ -38,12 +38,6 @@
     "postdocs:build": "cp -r logo docs",
     "clean": "rm -rf dist"
   },
-  "devDependencies": {
-    "typedoc": "^0.25.4",
-    "typedoc-plugin-extras": "^3.0.0",
-    "typedoc-plugin-mermaid": "^1.10.0",
-    "typedoc-plugin-replace-text": "^3.2.0"
-  },
   "files": [
     "/package.json",
     "/dist"
