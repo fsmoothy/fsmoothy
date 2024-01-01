@@ -17,6 +17,7 @@ module.exports = {
         'test',
         'wip',
         'chore',
+        'tools',
       ],
     ],
   },

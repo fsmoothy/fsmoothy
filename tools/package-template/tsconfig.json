@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "declarationMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+  },
+  "include": [
+    "src/**/*",
+    "./vitest.config.ts"
+  ]
+}

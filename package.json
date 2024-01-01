@@ -16,7 +16,8 @@
     "prepare": "husky install",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "npm run build && changeset publish"
+    "release": "npm run build && changeset publish",
+    "generate-package": "tsx tools/create-new-package.ts"
   },
   "workspaces": [
     "packages/*"
@@ -68,6 +69,7 @@
     "microbundle": "^0.15.1",
     "prettier": "^3.1.1",
     "semantic-release": "^22.0.12",
+    "tsx": "^4.7.0",
     "turbo": "^1.11.2",
     "typedoc": "^0.25.4",
     "typedoc-plugin-extras": "^3.0.0",
@@ -75,7 +77,8 @@
     "typedoc-plugin-replace-text": "^3.2.0",
     "typescript": "^5.3.3",
     "unplugin-swc": "^1.4.4",
-    "vitest": "^1.1.0"
+    "vitest": "^1.1.0",
+    "zx": "^7.2.3"
   },
   "dependencies": {
     "@changesets/cli": "^2.27.1"

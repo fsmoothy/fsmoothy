@@ -1,0 +1,44 @@
+{
+  "name": "@fsmoothy/<%= name %>",
+  "version": "1.0.0",
+  "private": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "source": "./src/index.ts",
+  "exports": {
+    "types": "./dist/index.d.ts",
+    "main": "./dist/index.js",
+    "module": "./dist/index.esm.mjs"
+  },
+  "readme": "README.md",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fsmoothy/fsmoothy.git"
+  },
+  "keywords": [
+    "fsm",
+    "state-machine",
+    "typescript"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/fsmoothy/fsmoothy/issues"
+  },
+  "homepage": "https://github.com/fsmoothy/fsmoothy#readme",
+  "scripts": {
+    "build": "microbundle -f esm,cjs --raw=true --tsconfig tsconfig.build.json",
+    "dev": "microbundle watch --tsconfig tsconfig.build.json",
+    "prebuild": "npm run clean",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "coverage": "vitest --coverage",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@fsmoothy/core": "1.0.0"
+  },
+  "files": [
+    "/package.json",
+    "/dist"
+  ]
+}
