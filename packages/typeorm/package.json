@@ -1,6 +1,6 @@
 {
   "name": "@fsmoothy/typeorm",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": false,
   "author": "Vassiliy Kuzenkov (bondiano)",
   "license": "MIT",
@@ -46,7 +46,7 @@
     }
   },
   "dependencies": {
-    "@fsmoothy/core": "1.0.0"
+    "@fsmoothy/core": "1.1.0"
   },
   "files": [
     "/package.json",
