@@ -8,11 +8,10 @@
     "strict": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "declaration": true,
-    "removeComments": true,
-    "strictPropertyInitialization": false,
-    "importHelpers": true
+    "declaration": true
   },
+  "exclude": [
+    "node_modules",
+    "build"
+  ]
 }

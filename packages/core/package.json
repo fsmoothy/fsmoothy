@@ -9,7 +9,7 @@
   "exports": {
     "types": "./dist/index.d.ts",
     "main": "./dist/index.js",
-    "module": "./dist/index.js"
+    "module": "./dist/index.esm.mjs"
   },
   "readme": "README.md",
   "repository": {
@@ -28,9 +28,9 @@
   },
   "homepage": "https://github.com/fsmoothy/fsmoothy#readme",
   "scripts": {
-    "dev": "npm run build -- --watch",
+    "build": "microbundle -f esm,cjs --raw=true --tsconfig tsconfig.build.json",
+    "dev": "microbundle watch --tsconfig tsconfig.build.json",
     "prebuild": "npm run clean",
-    "build": "tsc --project tsconfig.build.json",
     "test": "vitest",
     "test:watch": "vitest --watch",
     "coverage": "vitest --coverage",

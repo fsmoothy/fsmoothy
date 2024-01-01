@@ -14,7 +14,8 @@
     "test": "turbo test",
     "update": "npx npm-check-updates -u",
     "prepare": "husky install",
-    "version-packages": "changeset version",
+    "changeset": "changeset",
+    "version": "changeset version",
     "release": "npm run build && changeset publish"
   },
   "workspaces": [
@@ -63,6 +64,7 @@
     "eslint-plugin-unicorn": "^50.0.1",
     "husky": "^8.0.3",
     "lcov-result-merger": "^5.0.0",
+    "microbundle": "^0.15.1",
     "prettier": "^3.1.1",
     "semantic-release": "^22.0.12",
     "turbo": "^1.11.2",
