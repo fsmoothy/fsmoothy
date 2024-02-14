@@ -1,6 +1,6 @@
 {
   "name": "@fsmoothy/typeorm",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": false,
   "author": "Vassiliy Kuzenkov (bondiano)",
   "license": "MIT",
@@ -10,13 +10,16 @@
     "type": "git",
     "url": "git+https://github.com/fsmoothy/fsmoothy.git"
   },
+  "main": "dist/index.js",
+  "module": "dist/index.esm.mjs",
+  "types": "dist/index.d.ts",
   "source": "./src/index.ts",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    "types": "./dist/index.d.ts",
-    "main": "./dist/index.js",
-    "module": "./dist/index.js"
+    ".": {
+      "import": "./dist/index.esm.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
   },
   "keywords": [
     "typeorm",
@@ -46,7 +49,7 @@
     }
   },
   "dependencies": {
-    "@fsmoothy/core": "1.1.0"
+    "@fsmoothy/core": "1.1.1"
   },
   "files": [
     "/package.json",

@@ -318,7 +318,7 @@ try {
 ## Installation
 
 ```bash
-npm install typeorm fsm-typeorm
+npm install typeorm @fsmoothy/typeorm
 ```
 
 ## Examples

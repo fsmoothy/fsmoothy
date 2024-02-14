@@ -9,16 +9,16 @@ import { StateMachineEntity, t, state } from '../..';
  */
 
 enum FileState {
-  pending = 'pending',
-  uploading = 'uploading',
-  completed = 'completed',
-  failed = 'failed',
+  Pending = 'pending',
+  Uploading = 'uploading',
+  Completed = 'completed',
+  Failed = 'failed',
 }
 
 enum FileEvent {
-  start = 'start',
-  finish = 'finish',
-  fail = 'fail',
+  Start = 'start',
+  Finish = 'finish',
+  Fail = 'fail',
 }
 
 interface IFile {
@@ -32,21 +32,21 @@ class File
   extends StateMachineEntity({
     status: state({
       id: 'fileStatus',
-      initial: FileState.pending,
+      initial: FileState.Pending,
       transitions: [
-        t(FileState.pending, FileEvent.start, FileState.uploading),
-        t(FileState.uploading, FileEvent.finish, FileState.completed, {
-          async guard(this: IFile, _context, url: string) {
+        t(FileState.Pending, FileEvent.Start, FileState.Uploading),
+        t(FileState.Uploading, FileEvent.Finish, FileState.Completed, {
+          async guard(this: IFile, _context: never, url: string) {
             return this.url !== url;
           },
-          async onEnter(this: File, _context, url: string | null) {
+          async onEnter(this: File, _context: never, url: string | null) {
             this.url = url;
           },
         }),
         t(
-          [FileState.pending, FileState.uploading],
-          FileEvent.fail,
-          FileState.failed,
+          [FileState.Pending, FileState.Uploading],
+          FileEvent.Fail,
+          FileState.Failed,
         ),
       ],
     }),
@@ -107,14 +107,14 @@ describe('File upload', () => {
     const savedFile = await findFileById(file.id);
 
     expect(savedFile).toEqual(
-      expect.objectContaining({ status: FileState.uploading }),
+      expect.objectContaining({ status: FileState.Uploading }),
     );
 
     await file.fsm.status.finish('https://example.com');
     expect(file.fsm.status.isCompleted()).toBe(true);
     expect(await findFileById(file.id)).toEqual(
       expect.objectContaining({
-        status: FileState.completed,
+        status: FileState.Completed,
         url: 'https://example.com',
       }),
     );
@@ -123,23 +123,23 @@ describe('File upload', () => {
   it('should bulk update to different state', async () => {
     const file1 = await dataSource.manager
       .create(File, {
-        status: FileState.pending,
+        status: FileState.Pending,
       })
       .save();
     const file2 = await dataSource.manager
       .create(File, {
-        status: FileState.uploading,
+        status: FileState.Uploading,
       })
       .save();
 
     const filesToUpdate = [
       {
         file: file1,
-        event: FileEvent.start,
+        event: FileEvent.Start,
       },
       {
         file: file2,
-        event: FileEvent.fail,
+        event: FileEvent.Fail,
       },
     ];
 

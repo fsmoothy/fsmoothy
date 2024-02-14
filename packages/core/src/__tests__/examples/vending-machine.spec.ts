@@ -15,8 +15,13 @@ enum Event {
   Reset = 'reset',
 }
 
+interface IProduct {
+  name: string;
+  price: number;
+}
+
 interface IVendingMachineContext {
-  products: Map<number, { name: string; price: number }>;
+  products: Map<number, IProduct>;
   selectedProductId: number | null;
   depositedCoins: number;
 }
@@ -69,7 +74,7 @@ class VendingMachine extends StateMachine<
               context.data.products.get(context.data.selectedProductId)
                 ?.price ?? 0;
 
-            return Boolean(context.data.depositedCoins >= productPrice);
+            return context.data.depositedCoins >= productPrice;
           },
         }),
         t(State.Dispensing, Event.Reset, State.Idle),

@@ -1,9 +1,9 @@
 import {
-  StateMachineParameters,
-  StateMachine,
-  IStateMachine,
   AllowedNames,
   FsmContext,
+  StateMachineParameters,
+  IStateMachine,
+  StateMachine,
 } from '@fsmoothy/core';
 import { BaseEntity, Column, getMetadataArgsStorage } from 'typeorm';
 
@@ -64,7 +64,7 @@ type BaseStateMachineEntity<
   Context extends FsmContext<object> = FsmContext<object>,
   Column extends string = string,
 > = BaseEntity & {
-  [key: string]: unknown;
+  [key in Column]: unknown;
 } & {
   fsm: {
     [column in Column]: IStateMachine<State, Event, Context>;
@@ -97,11 +97,7 @@ function initializeStateMachine<
   parameters.transitions = transitions?.map(function (transition) {
     return {
       ...transition,
-      async onExit(
-        this: BaseStateMachineEntity<State, Event, Context, Column>,
-        context: Context,
-        ...arguments_: Array<unknown>
-      ) {
+      async onExit(this: any, context: Context, ...arguments_: Array<unknown>) {
         this[column] = transition.to;
 
         await transition.onExit?.call(this, context, ...arguments_);
@@ -121,8 +117,10 @@ function initializeStateMachine<
 
   if (
     persistContext &&
+    // @ts-expect-error - monkey patching
     Object.keys(this[buildContextColumnName(column)] as object).length > 0
   ) {
+    // @ts-expect-error - monkey patching
     _data = this[buildContextColumnName(column)];
   }
 

@@ -1,15 +1,18 @@
 {
   "name": "@fsmoothy/core",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": false,
   "description": "FSMoothy is a feature-rich and easy-to-use finite state machine for TypeScript.",
   "main": "dist/index.js",
+  "module": "dist/index.esm.mjs",
   "types": "dist/index.d.ts",
   "source": "./src/index.ts",
   "exports": {
-    "types": "./dist/index.d.ts",
-    "main": "./dist/index.js",
-    "module": "./dist/index.esm.mjs"
+    ".": {
+      "import": "./dist/index.esm.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
   },
   "readme": "README.md",
   "repository": {

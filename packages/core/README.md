@@ -69,7 +69,7 @@ type OrderItemContext = FsmContext<{
 To create state machine, we need to instantiate `StateMachine` class and pass the initial state and the state transition table to the constructor.
 
 ```typescript
-import { StateMachine, t, FsmContext } from 'fsmoothy';
+import { StateMachine, t, FsmContext } from '@fsmoothy/core';
 
 const orderItemFSM = new StateMachine<
   OrderItemState,
@@ -458,7 +458,7 @@ stateMachine.injectAsync('logger', async (fsm) => new Logger(fsm)); // factory f
 Library throws `StateMachineError` if transition is not available. It can be caught using `try/catch` and checked using `isStateMachineError` function.
 
 ```typescript
-import { isStateMachineError } from 'typeorm-fsm';
+import { isStateMachineError } from '@fsmoothy/core';
 
 try {
   await orderItemFSM.create();
@@ -472,7 +472,7 @@ try {
 ## Installation
 
 ```bash
-npm install fsmoothy
+npm install @fsmoothy/core
 ```
 
 ## Examples

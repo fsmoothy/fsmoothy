@@ -1,6 +1,6 @@
 {
   "name": "fsmoothy",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "[<img src=\"logo/fsmoothy-logo.svg\" alt=\"FSMoothy\" width=\"233px\">](https://github.com/fsmoothy/fsmoothy)",
   "private": true,
   "scripts": {
