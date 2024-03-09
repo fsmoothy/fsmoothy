@@ -13,6 +13,7 @@ import {
   ParallelState,
   HistoryTypes,
   INestedStateMachine,
+  HydratedState,
 } from './types';
 
 type Nested = _NestedStateMachine<any, any, any> | ParallelState<any, any, any>;
@@ -547,6 +548,41 @@ export class _StateMachine<
     }
 
     return this;
+  }
+
+  /**
+   * Hydrates the state machine to JSON.
+   *
+   * @returns Hydrated JSON.
+   */
+  public dehydrate(): string {
+    const hydrated: HydratedState<State, Context['data']> = {
+      current: this.current,
+      data: this._context.data,
+    };
+
+    if (this._activeChild) {
+      hydrated.nested = JSON.parse(this._activeChild.dehydrate());
+    }
+
+    return JSON.stringify(hydrated);
+  }
+
+  /**
+   * Apply hydrated JSON to the state machine.
+   *
+   * @param hydrated - Hydrated JSON.
+   */
+  public hydrate(hydrated: string) {
+    const hydratedObject: HydratedState<State, Context['data']> =
+      JSON.parse(hydrated);
+
+    this._last = identityTransition(hydratedObject.current);
+    this._context.data = hydratedObject.data;
+
+    if (this._activeChild) {
+      this._activeChild.hydrate(JSON.stringify(hydratedObject.nested));
+    }
   }
 
   private async makeNestedTransition(

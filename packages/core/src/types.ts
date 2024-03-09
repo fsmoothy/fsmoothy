@@ -2,9 +2,9 @@ import { _StateMachine, _NestedStateMachine } from './fsm';
 
 export type AllowedNames = string | number;
 
-export type FsmContext<D extends object = never> = {
+export interface FsmContext<D extends object = never> {
   data: D;
-};
+}
 
 export type Callback<
   Context extends FsmContext<object>,
@@ -90,4 +90,13 @@ export interface ParallelState<
 > {
   type: 'parallel';
   machines: Array<INestedStateMachine<State, Event, Context>>;
+}
+
+export interface HydratedState<
+  State extends AllowedNames,
+  Data extends object,
+> {
+  current: State;
+  data: Data;
+  nested?: HydratedState<AllowedNames, object>;
 }

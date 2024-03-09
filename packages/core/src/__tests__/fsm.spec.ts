@@ -1129,4 +1129,72 @@ describe('StateMachine', () => {
       expect(onExitCallbackContext).toBe(bound);
     });
   });
+
+  describe('hydrate', () => {
+    it('should be able to dehydrate state machine to string', () => {
+      const stateMachine = createFetchStateMachine();
+
+      expect(stateMachine.dehydrate()).toBe(
+        JSON.stringify({ current: 'idle', data: {} }),
+      );
+    });
+
+    it('should be able to dehydrate state machine from string', () => {
+      const stateMachine = createFetchStateMachine();
+
+      stateMachine.hydrate(
+        JSON.stringify({ current: 'pending', data: { foo: 'bar' } }),
+      );
+
+      expect(stateMachine.current).toBe(State.pending);
+      expect(stateMachine.data).toEqual({ foo: 'bar' });
+    });
+
+    it('should be able to hydrate and dehydrate nested FSM', async () => {
+      const fsm = new StateMachine({
+        id: 'fsm',
+        initial: State.idle,
+        data: () => ({ foo: 'bar' }),
+        transitions: [t(State.idle, Event.fetch, State.pending)],
+        states: () => ({
+          [State.pending]: nested({
+            id: 'nested-fsm',
+            initial: State.idle,
+            transitions: [t(State.idle, Event.fetch, State.pending)],
+          }),
+        }),
+      });
+
+      await fsm.fetch();
+
+      const dehydrated = fsm.dehydrate();
+
+      expect(dehydrated).toBe(
+        JSON.stringify({
+          current: 'pending',
+          data: { foo: 'bar' },
+          nested: {
+            current: 'idle',
+            data: {},
+          },
+        }),
+      );
+
+      fsm.hydrate(
+        JSON.stringify({
+          current: State.pending,
+          data: { foo: 'bar' },
+          nested: {
+            current: State.idle,
+            data: {},
+          },
+        }),
+      );
+
+      expect(fsm.current).toBe(State.pending);
+      expect(fsm.data).toEqual({ foo: 'bar' });
+      expect(fsm.child?.current).toBe(State.idle);
+      expect(fsm.child?.data).toEqual({});
+    });
+  });
 });

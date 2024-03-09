@@ -469,6 +469,17 @@ try {
 }
 ```
 
+### Hydrate and dehydrate
+
+You can use `dehydrate` and `hydrate`  methods to convert fsm state to plain string and back.
+
+```typescript
+const state = orderItemFSM.dehydrate();
+// { "current": "draft", "data": { "place": "My warehouse" } }
+
+orderItemFSM.hydrate(state);
+```
+
 ## Installation
 
 ```bash
