@@ -100,3 +100,70 @@ export interface HydratedState<
   data: Data;
   nested?: HydratedState<AllowedNames, object>;
 }
+
+export type Nested =
+  | INestedStateMachine<any, any, any>
+  | ParallelState<any, any, any>;
+
+export type States<State extends AllowedNames> = Map<State, Nested | null>;
+
+type Injectable<
+  State extends AllowedNames | Array<AllowedNames>,
+  Event extends AllowedNames,
+  Context extends FsmContext<object> = FsmContext<object>,
+> = {
+  [Key in keyof Omit<Context, 'data'>]?: (
+    fsm: IStateMachine<
+      State extends AllowedNames ? State : never,
+      Event,
+      Context
+    >,
+  ) => Context[Key] | Promise<Context[Key]>;
+};
+
+export interface StateMachineParameters<
+  State extends AllowedNames | Array<AllowedNames>,
+  Event extends AllowedNames,
+  Context extends FsmContext<object> = FsmContext<object>,
+> {
+  readonly data?: (
+    parameters: StateMachineParameters<State, Event, Context>,
+  ) => Context['data'] | Promise<Context['data']>;
+  readonly initial: State;
+  readonly transitions?: [
+    Transition<State, Event, Context>,
+    ...Array<Transition<State, Event, Context>>,
+  ];
+  readonly id?: string;
+  readonly subscribers?: Subscribers<Event, Context>;
+  readonly states?: (
+    parameters: StateMachineParameters<State, Event, Context>,
+  ) => {
+    [key in State extends Array<AllowedNames> ? never : State]?: Nested;
+  };
+  readonly inject?: Injectable<State, Event, Context>;
+}
+
+export type StateMachineConstructor = {
+  new <
+    State extends AllowedNames,
+    Event extends AllowedNames,
+    Context extends FsmContext<object> = FsmContext<never>,
+  >(
+    parameters: StateMachineParameters<State, Event, Context>,
+  ): IStateMachine<State, Event, Context>;
+};
+
+export interface IInternalTransition<
+  State extends AllowedNames,
+  Event extends AllowedNames,
+  Context extends FsmContext<object> = FsmContext<never>,
+> extends Transition<State, Event, Context> {
+  _original: Transition<State, Event, Context>;
+}
+
+export type TransitionsStorage<
+  State extends AllowedNames,
+  Event extends AllowedNames,
+  Context extends FsmContext<object> = FsmContext<never>,
+> = Map<Event, Map<State, Array<IInternalTransition<State, Event, Context>>>>;

@@ -1,10 +1,11 @@
-import { StateMachineParameters, _NestedStateMachine } from './fsm';
+import { _NestedStateMachine } from './fsm';
 import {
   AllowedNames,
   FsmContext,
   HistoryTypes,
   INestedStateMachine,
   ParallelState,
+  StateMachineParameters,
 } from './types';
 
 export interface INestedStateMachineParameters<
@@ -12,6 +13,10 @@ export interface INestedStateMachineParameters<
   Event extends AllowedNames,
   Context extends FsmContext<object>,
 > extends StateMachineParameters<State, Event, Context> {
+  /**
+   * The history type of the nested state machine.
+   * @default 'deep'
+   */
   history?: HistoryTypes;
 }
 

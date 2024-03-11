@@ -1,4 +1,16 @@
 import { StateMachineError } from './fsm.error';
+import {
+  identityTransition,
+  prepareStates,
+  prepareTransitions,
+  prepareSubscribers,
+  populateEventMethods,
+  populateCheckers,
+  populateContext,
+  addIsChecker,
+  _true,
+  capitalize,
+} from './heplers';
 import { INestedStateMachineParameters } from './nested';
 import { All } from './symbols';
 import { TransitionOptions, t } from './transition';
@@ -6,7 +18,6 @@ import {
   AllowedNames,
   Callback,
   Transition,
-  Subscribers,
   FsmContext,
   Guard,
   IStateMachine,
@@ -14,100 +25,12 @@ import {
   HistoryTypes,
   INestedStateMachine,
   HydratedState,
+  Nested,
+  StateMachineConstructor,
+  StateMachineParameters,
+  States,
+  TransitionsStorage,
 } from './types';
-
-type Nested = _NestedStateMachine<any, any, any> | ParallelState<any, any, any>;
-
-type States<State extends AllowedNames> = Map<State, Nested | null>;
-
-type Injectable<
-  State extends AllowedNames | Array<AllowedNames>,
-  Event extends AllowedNames,
-  Context extends FsmContext<object> = FsmContext<object>,
-> = {
-  [Key in keyof Omit<Context, 'data'>]?: (
-    fsm: IStateMachine<
-      State extends AllowedNames ? State : never,
-      Event,
-      Context
-    >,
-  ) => Context[Key] | Promise<Context[Key]>;
-};
-
-export interface StateMachineParameters<
-  State extends AllowedNames | Array<AllowedNames>,
-  Event extends AllowedNames,
-  Context extends FsmContext<object> = FsmContext<object>,
-> {
-  readonly data?: (
-    parameters: StateMachineParameters<State, Event, Context>,
-  ) => Context['data'] | Promise<Context['data']>;
-  readonly initial: State;
-  readonly transitions?: [
-    Transition<State, Event, Context>,
-    ...Array<Transition<State, Event, Context>>,
-  ];
-  readonly id?: string;
-  readonly subscribers?: Subscribers<Event, Context>;
-  readonly states?: (
-    parameters: StateMachineParameters<State, Event, Context>,
-  ) => {
-    [key in State extends Array<AllowedNames> ? never : State]?: Nested;
-  };
-  readonly inject?: Injectable<State, Event, Context>;
-}
-
-export type StateMachineConstructor = {
-  new <
-    State extends AllowedNames,
-    Event extends AllowedNames,
-    Context extends FsmContext<object> = FsmContext<never>,
-  >(
-    parameters: StateMachineParameters<State, Event, Context>,
-  ): IStateMachine<State, Event, Context>;
-};
-
-interface IInternalTransition<
-  State extends AllowedNames,
-  Event extends AllowedNames,
-  Context extends FsmContext<object> = FsmContext<never>,
-> extends Transition<State, Event, Context> {
-  _original: Transition<State, Event, Context>;
-}
-
-const IdentityEvent = Symbol('IdentityEvent') as any;
-
-function capitalize(parameter: string) {
-  return parameter.charAt(0).toUpperCase() + parameter.slice(1);
-}
-
-function _true() {
-  return true;
-}
-
-const SpecialSymbols = new Set([All, IdentityEvent]);
-
-function identityTransition<
-  State extends AllowedNames,
-  Event extends AllowedNames,
-  Context extends FsmContext<object> = FsmContext<never>,
->(state: State) {
-  const transition = {
-    from: state,
-    event: IdentityEvent,
-    to: state,
-  };
-  return {
-    ...transition,
-    _original: transition,
-  } as IInternalTransition<State, Event, Context>;
-}
-
-type TransitionsStorage<
-  State extends AllowedNames,
-  Event extends AllowedNames,
-  Context extends FsmContext<object> = FsmContext<never>,
-> = Map<Event, Map<State, Array<IInternalTransition<State, Event, Context>>>>;
 
 export class _StateMachine<
   const State extends AllowedNames,
@@ -156,14 +79,17 @@ export class _StateMachine<
     this._id = parameters.id ?? 'fsm';
     this._last = identityTransition(parameters.initial);
 
-    this._states = this.prepareStates(parameters);
+    this._states = (prepareStates<State>).call(this, parameters);
 
-    this._transitions = this.prepareTransitions(parameters.transitions);
-    this._subscribers = this.prepareSubscribers(parameters.subscribers);
+    this._transitions = prepareTransitions.call(this, parameters.transitions);
+    this._subscribers = (prepareSubscribers<Event, Context>).call(
+      this,
+      parameters.subscribers,
+    );
 
-    this.populateEventMethods(parameters);
-    this.populateCheckers(parameters);
-    this.populateContext(parameters);
+    populateEventMethods.call(this, parameters);
+    populateCheckers.call(this, parameters);
+    populateContext.call(this, parameters);
   }
 
   /**
@@ -233,7 +159,7 @@ export class _StateMachine<
     }
 
     for (const state of states) {
-      this.addIsChecker(state);
+      addIsChecker.call(this, state);
 
       const transitionsByState = this._transitions.get(event);
 
@@ -274,7 +200,7 @@ export class _StateMachine<
     const nestedStates = nestedState.states;
 
     for (const nestedState of nestedStates) {
-      this.addIsChecker(nestedState as State);
+      addIsChecker.call(this, nestedState as State);
     }
 
     return this;
@@ -651,95 +577,12 @@ export class _StateMachine<
     return null;
   }
 
-  private prepareSubscribers(subscribers?: Subscribers<Event, Context>) {
-    const _subscribers = new Map<
-      Event,
-      Map<Callback<Context>, Callback<Context>>
-    >();
-
-    if (!subscribers) {
-      return _subscribers;
-    }
-
-    if (All in subscribers) {
-      for (const callback of subscribers[
-        All as keyof typeof subscribers
-      ] as Array<Callback<Context>>) {
-        _subscribers.set(All, new Map());
-        _subscribers.get(All)?.set(callback, callback.bind(this));
-      }
-    }
-
-    for (const [event, callbacks] of Object.entries(subscribers)) {
-      if (!_subscribers.has(event as Event)) {
-        _subscribers.set(event as Event, new Map());
-      }
-
-      for (const callback of callbacks as Array<Callback<Context>>) {
-        _subscribers.get(event as Event)?.set(callback, callback.bind(this));
-      }
-    }
-
-    return _subscribers;
-  }
-
-  private prepareStates(
-    parameters: StateMachineParameters<State, Event, Context>,
-  ) {
-    const states = new Map<State, Nested | null>();
-    const statesFromParameters = parameters.states?.(parameters);
-
-    for (const { from, to } of parameters.transitions ?? []) {
-      if (Array.isArray(from)) {
-        for (const state of from) {
-          states.set(state, null);
-        }
-      } else {
-        states.set(from, null);
-      }
-      states.set(to, null);
-    }
-
-    for (const [state, nested] of Object.entries(statesFromParameters ?? {})) {
-      (nested as any)._parent = this;
-      states.set(state as State, nested as Nested);
-    }
-
-    return states;
-  }
-
-  private prepareTransitions(
-    transitions?: Array<Transition<State, Event, Context>>,
-  ) {
-    return (
-      transitions?.reduce((accumulator, transition) => {
-        const { from, event } = transition;
-        const froms = Array.isArray(from) ? from : [from];
-
-        if (!accumulator.has(event)) {
-          accumulator.set(event, new Map());
-        }
-
-        const transitionsByState = accumulator.get(event);
-
-        for (const from of froms) {
-          if (!transitionsByState?.has(from)) {
-            transitionsByState?.set(from, []);
-          }
-
-          transitionsByState?.get(from)?.push(this.bindToCallbacks(transition));
-        }
-
-        return accumulator;
-      }, new Map()) ?? new Map()
-    );
-  }
-
   /**
    * Adds event methods to the state machine instance.
    */
   private addEventMethods(event: Event) {
     if (typeof event !== 'string') {
+      // when event is a symbol
       return;
     }
 
@@ -753,107 +596,6 @@ export class _StateMachine<
     // @ts-expect-error We need to assign the method to the instance.
     this[`can${capitalizedEvent}`] = (...arguments_) =>
       this.can(event, ...arguments_);
-  }
-
-  private populateEventMethods(
-    parameters: StateMachineParameters<State, Event, Context>,
-  ) {
-    const nestedEvents = [...this._states.values()].flatMap((nested) => {
-      if (!nested) {
-        return [];
-      }
-
-      if (nested.type === 'parallel') {
-        return nested.machines.flatMap((m) => m.events);
-      }
-
-      return nested.events;
-    });
-
-    const events = new Set([
-      ...(parameters.transitions?.map((t) => t.event) ?? []),
-      ...nestedEvents,
-    ]);
-
-    for (const event of events) {
-      if (SpecialSymbols.has(event)) {
-        continue;
-      }
-
-      this.addEventMethods(event);
-    }
-  }
-
-  private addIsChecker(state: State) {
-    if (typeof state !== 'string') {
-      return;
-    }
-
-    const capitalized = capitalize(state);
-
-    // @ts-expect-error We need to assign the method to the instance.
-    this[`is${capitalized}`] = () => this.is(state);
-  }
-
-  private populateContext(
-    parameters: StateMachineParameters<State, Event, Context>,
-  ) {
-    this._contextPromise = Promise.resolve({} as Context);
-
-    for (const [key, value] of Object.entries(parameters.inject ?? {})) {
-      const contextValue = (
-        typeof value === 'function' ? value(this) : value
-      ) as Context[keyof Context];
-
-      if (contextValue instanceof Promise) {
-        this._contextPromise = this._contextPromise.then((context) => {
-          return contextValue.then((value) => {
-            context[key as keyof Context] = value;
-            return context;
-          });
-        });
-      } else {
-        this._context[key as keyof Context] = contextValue;
-      }
-    }
-
-    const data = parameters.data?.(parameters) ?? {};
-    if (data instanceof Promise) {
-      this._dataPromise = data;
-      this._context.data = {};
-    } else {
-      this._context.data = data;
-    }
-  }
-
-  private populateCheckers(
-    parameters: StateMachineParameters<State, Event, Context>,
-  ) {
-    const nestedStates = [...this._states.values()].flatMap((nested) => {
-      if (!nested) {
-        return [];
-      }
-
-      if (nested.type === 'parallel') {
-        return nested.machines.flatMap((m) => m.states);
-      }
-
-      return nested.states;
-    });
-
-    const states = new Set([
-      ...(parameters.transitions?.map((t) => t.from) ?? []),
-      ...(parameters.transitions?.map((t) => t.to) ?? []),
-      ...nestedStates,
-    ]);
-
-    for (const state of states) {
-      if (SpecialSymbols.has(state)) {
-        continue;
-      }
-
-      this.addIsChecker(state);
-    }
   }
 
   /**

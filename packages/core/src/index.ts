@@ -1,4 +1,4 @@
-export { StateMachine, StateMachineParameters } from './fsm';
+export { StateMachine } from './fsm';
 export { t } from './transition';
 export { nested } from './nested';
 export type {
@@ -6,6 +6,7 @@ export type {
   FsmContext,
   IStateMachine,
   AllowedNames,
+  StateMachineParameters,
 } from './types';
 export { isStateMachineError } from './fsm.error';
 export { All } from './symbols';
