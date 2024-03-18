@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { StateMachine } from '../fsm';
-import { NestedStateMachine, nested, parallel } from '../nested';
+import { nested, parallel } from '../nested';
 import { All } from '../symbols';
 import { t } from '../transition';
 
@@ -870,22 +870,6 @@ describe('StateMachine', () => {
         service: typeof service;
       };
 
-      class NestedFSM extends NestedStateMachine<
-        NestedStates,
-        NestedEvents,
-        NestedFSMContext
-      > {
-        constructor() {
-          super({
-            id: 'nested-fsm',
-            initial: NestedStates.dontWalk,
-            transitions: [
-              t(NestedStates.dontWalk, NestedEvents.toggle, NestedStates.walk),
-            ],
-          });
-        }
-      }
-
       const fsm = new StateMachine<
         State | NestedStates,
         Event | NestedEvents,
@@ -900,10 +884,26 @@ describe('StateMachine', () => {
           t(State.red, Event.next, State.green),
         ],
         states: () => {
-          const nested = new NestedFSM();
-          const nestedInNested = new NestedFSM();
-          nested.addNestedMachine(NestedStates.walk, nestedInNested);
-          nested.inject('service', service);
+          const _nested = nested<NestedStates, NestedEvents, NestedFSMContext>({
+            id: 'nested-fsm',
+            initial: NestedStates.dontWalk,
+            transitions: [
+              t(NestedStates.dontWalk, NestedEvents.toggle, NestedStates.walk),
+            ],
+          });
+          const nestedInNested = nested<
+            NestedStates,
+            NestedEvents,
+            NestedFSMContext
+          >({
+            id: 'nested-fsm',
+            initial: NestedStates.dontWalk,
+            transitions: [
+              t(NestedStates.dontWalk, NestedEvents.toggle, NestedStates.walk),
+            ],
+          });
+          _nested.addNestedMachine(NestedStates.walk, nestedInNested);
+          _nested.inject('service', service);
 
           nestedInNested.on(All, (context) => {
             context.service();
@@ -911,7 +911,7 @@ describe('StateMachine', () => {
           });
 
           return {
-            [State.red]: nested,
+            [State.red]: _nested,
           };
         },
       });

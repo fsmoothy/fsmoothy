@@ -7,7 +7,6 @@ import {
   Transition,
   Subscribers,
   Callback,
-  IStateMachine,
   Nested,
 } from './types';
 
@@ -68,8 +67,12 @@ export function prepareStates<State extends AllowedNames>(
   }
 
   for (const [state, nested] of Object.entries(statesFromParameters)) {
+    if (!nested) {
+      continue;
+    }
+
     (nested as any)._parent = this;
-    states.set(state as State, nested as Nested);
+    states.set(state as State, nested);
   }
 
   return states;
@@ -142,15 +145,9 @@ export function populateEventMethods(
   this: any,
   parameters: StateMachineParameters<any, any, any>,
 ) {
-  const nestedEvents = [...this._states.values()].flatMap((nested) => {
-    if (!nested) {
-      return [];
-    }
-
+  const nestedEvents = this.nested.flatMap((nested: Nested) => {
     if (nested.type === 'parallel') {
-      return nested.machines.flatMap(
-        (m: IStateMachine<any, any, any>) => m.events,
-      );
+      return nested.machines.flatMap((m) => m.events);
     }
 
     return nested.events;
@@ -166,7 +163,7 @@ export function populateEventMethods(
       continue;
     }
 
-    this.addEventMethods(event);
+    addEventMethods.call(this, event);
   }
 }
 
@@ -174,15 +171,9 @@ export function populateCheckers(
   this: any,
   parameters: StateMachineParameters<any, any, any>,
 ) {
-  const nestedStates = [...this._states.values()].flatMap((nested) => {
-    if (!nested) {
-      return [];
-    }
-
+  const nestedStates = this.nested.flatMap((nested: Nested) => {
     if (nested.type === 'parallel') {
-      return nested.machines.flatMap(
-        (m: IStateMachine<any, any, any>) => m.states,
-      );
+      return nested.machines.flatMap((m) => m.states);
     }
 
     return nested.states;
@@ -203,32 +194,21 @@ export function populateCheckers(
   }
 }
 
-export function populateContext(
+export function addEventMethods<Event extends AllowedNames>(
   this: any,
-  parameters: StateMachineParameters<any, any, any>,
+  event: Event,
 ) {
-  this._contextPromise = Promise.resolve({});
-
-  for (const [key, value] of Object.entries(parameters.inject ?? {})) {
-    const contextValue = typeof value === 'function' ? value(this) : value;
-
-    if (contextValue instanceof Promise) {
-      this._contextPromise = this._contextPromise.then((context: any) => {
-        return contextValue.then((value) => {
-          context[key] = value;
-          return context;
-        });
-      });
-    } else {
-      this._context[key] = contextValue;
-    }
+  if (typeof event !== 'string') {
+    // when event is a symbol
+    return;
   }
 
-  const data = parameters.data?.(parameters) ?? {};
-  if (data instanceof Promise) {
-    this._dataPromise = data;
-    this._context.data = {};
-  } else {
-    this._context.data = data;
-  }
+  const capitalizedEvent = capitalize(event);
+
+  this[event] = async (...arguments_: Array<unknown>) => {
+    await this.transition(event, ...arguments_);
+  };
+
+  this[`can${capitalizedEvent}`] = (...arguments_: Array<unknown>) =>
+    this.can(event, ...arguments_);
 }

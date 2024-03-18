@@ -1,4 +1,5 @@
-import { _StateMachine, _NestedStateMachine } from './fsm';
+import { _StateMachine } from './fsm';
+import { _NestedStateMachine } from './nested';
 
 export type AllowedNames = string | number;
 
@@ -72,6 +73,20 @@ export type IStateMachine<
   StateMachineCheckers<State> &
   StateMachineTransitionCheckers<Event>;
 
+export type HistoryTypes = 'none' | 'deep';
+
+export interface INestedStateMachineParameters<
+  State extends AllowedNames,
+  Event extends AllowedNames,
+  Context extends FsmContext<object>,
+> extends StateMachineParameters<State, Event, Context> {
+  /**
+   * The history type of the nested state machine.
+   * @default 'deep'
+   */
+  history?: HistoryTypes;
+}
+
 export type INestedStateMachine<
   State extends AllowedNames,
   Event extends AllowedNames,
@@ -81,7 +96,16 @@ export type INestedStateMachine<
   StateMachineCheckers<State> &
   StateMachineTransitionCheckers<Event>;
 
-export type HistoryTypes = 'none' | 'deep';
+export type NestedStateMachineConstructor = {
+  new <
+    State extends AllowedNames,
+    Event extends AllowedNames,
+    Context extends FsmContext<object>,
+  >(
+    parameters: StateMachineParameters<State, Event, Context>,
+    parent?: _StateMachine<any, any, any>,
+  ): INestedStateMachine<State, Event, Context>;
+};
 
 export interface ParallelState<
   State extends AllowedNames,
