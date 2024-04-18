@@ -40,7 +40,7 @@
     "clean": "rm -rf dist"
   },
   "peerDependencies": {
-    "typeorm": "^0.3.17"
+    "typeorm": "^0.3.20"
   },
   "commit": "cz",
   "config": {
@@ -54,5 +54,8 @@
   "files": [
     "/package.json",
     "/dist"
-  ]
+  ],
+  "devDependencies": {
+    "better-sqlite3": "^9.5.0"
+  }
 }
