@@ -52,46 +52,19 @@ export function nested<
   return new NestedStateMachine(machineParameters);
 }
 
+/**
+ * Creates a parallel state. Parallel states execute all nested state machines at the same time.
+ *
+ * @param nested The nested state machines.
+ */
 export function parallel<
-  const State extends AllowedNames,
-  const Event extends AllowedNames,
-  Context extends FsmContext<object>,
->(
-  nested: INestedStateMachine<State, Event, Context>,
-): ParallelState<State, Event, Context>;
-export function parallel<
-  const State1 extends AllowedNames,
-  const Event1 extends AllowedNames,
-  Context1 extends FsmContext<object>,
-  const State2 extends AllowedNames,
-  const Event2 extends AllowedNames,
-  Context2 extends FsmContext<object>,
->(
-  nested1: INestedStateMachine<State1, Event1, Context1>,
-  nested2: INestedStateMachine<State2, Event2, Context2>,
-): ParallelState<State1 | State2, Event1 | Event1, Context1 | Context2>;
-export function parallel<
-  const State1 extends AllowedNames,
-  const Event1 extends AllowedNames,
-  Context1 extends FsmContext<object>,
-  const State2 extends AllowedNames,
-  const Event2 extends AllowedNames,
-  Context2 extends FsmContext<object>,
-  const State3 extends AllowedNames,
-  const Event3 extends AllowedNames,
-  Context3 extends FsmContext<object>,
->(
-  nested1: INestedStateMachine<State1, Event1, Context1>,
-  nested2: INestedStateMachine<State2, Event2, Context2>,
-  nested3: INestedStateMachine<State3, Event3, Context3>,
-): ParallelState<
-  State1 | State2 | State3,
-  Event1 | Event1 | Event3,
-  Context1 | Context2 | Context3
->;
-export function parallel(
-  ...nested: Array<INestedStateMachine<any, any, any>>
-): ParallelState<any, any, any> {
+  NestedMachines extends ReadonlyArray<
+    INestedStateMachine<State, Event, Context>
+  >,
+  const State extends AllowedNames = NestedMachines[number]['current'],
+  const Event extends AllowedNames = NestedMachines[number]['events'][number],
+  Context extends FsmContext<object> = NestedMachines[number]['context'],
+>(...nested: NestedMachines): ParallelState<State, Event, Context> {
   return {
     type: 'parallel',
     machines: nested,

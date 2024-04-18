@@ -18,7 +18,7 @@ export type Guard<
 > = (context: Context, ...arguments_: T) => Promise<boolean> | boolean;
 
 export interface Transition<
-  State extends AllowedNames | Array<AllowedNames>,
+  State extends AllowedNames | ReadonlyArray<AllowedNames>,
   Event extends AllowedNames,
   Context extends FsmContext<object>,
 > {
@@ -113,7 +113,7 @@ export interface ParallelState<
   Context extends FsmContext<object>,
 > {
   type: 'parallel';
-  machines: Array<INestedStateMachine<State, Event, Context>>;
+  machines: ReadonlyArray<INestedStateMachine<State, Event, Context>>;
 }
 
 export interface HydratedState<
@@ -132,7 +132,7 @@ export type Nested =
 export type States<State extends AllowedNames> = Map<State, Nested | null>;
 
 type Injectable<
-  State extends AllowedNames | Array<AllowedNames>,
+  State extends AllowedNames | ReadonlyArray<AllowedNames>,
   Event extends AllowedNames,
   Context extends FsmContext<object> = FsmContext<object>,
 > = {
@@ -146,7 +146,7 @@ type Injectable<
 };
 
 export interface StateMachineParameters<
-  State extends AllowedNames | Array<AllowedNames>,
+  State extends AllowedNames | ReadonlyArray<AllowedNames>,
   Event extends AllowedNames,
   Context extends FsmContext<object> = FsmContext<object>,
 > {
@@ -163,7 +163,7 @@ export interface StateMachineParameters<
   readonly states?: (
     parameters: StateMachineParameters<State, Event, Context>,
   ) => {
-    [key in State extends Array<AllowedNames> ? never : State]?: Nested;
+    [key in State extends ReadonlyArray<AllowedNames> ? never : State]?: Nested;
   };
   readonly inject?: Injectable<State, Event, Context>;
 }

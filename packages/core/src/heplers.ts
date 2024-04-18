@@ -199,7 +199,7 @@ export function addEventMethods<Event extends AllowedNames>(
   event: Event,
 ) {
   if (typeof event !== 'string') {
-    // when event is a symbol
+    // this could happen if the `event` is `All` or `IdentityEvent`
     return;
   }
 
