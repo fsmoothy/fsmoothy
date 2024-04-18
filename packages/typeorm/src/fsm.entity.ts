@@ -19,44 +19,41 @@ export interface IStateMachineEntityColumnParameters<
   saveAfterTransition?: boolean;
 }
 
-type ExtractState<
-  Parameters extends object,
-  Column extends keyof Parameters,
-> = Parameters[Column] extends IStateMachineEntityColumnParameters<
-  infer State,
-  any,
-  any
->
-  ? State extends AllowedNames
-    ? State
-    : never
-  : never;
+type ExtractState<Parameters extends object, Column extends keyof Parameters> =
+  Parameters[Column] extends IStateMachineEntityColumnParameters<
+    infer State,
+    any,
+    any
+  >
+    ? State extends AllowedNames
+      ? State
+      : never
+    : never;
 
-type ExtractEvent<
-  Parameters extends object,
-  Column extends keyof Parameters,
-> = Parameters[Column] extends IStateMachineEntityColumnParameters<
-  any,
-  infer Event,
-  any
->
-  ? Event extends AllowedNames
-    ? Event
-    : never
-  : never;
+type ExtractEvent<Parameters extends object, Column extends keyof Parameters> =
+  Parameters[Column] extends IStateMachineEntityColumnParameters<
+    any,
+    infer Event,
+    any
+  >
+    ? Event extends AllowedNames
+      ? Event
+      : never
+    : never;
 
 type ExtractContext<
   Parameters extends object,
   Column extends keyof Parameters,
-> = Parameters[Column] extends IStateMachineEntityColumnParameters<
-  any,
-  any,
-  infer Context
->
-  ? Context extends object
-    ? Context
-    : never
-  : never;
+> =
+  Parameters[Column] extends IStateMachineEntityColumnParameters<
+    any,
+    any,
+    infer Context
+  >
+    ? Context extends object
+      ? Context
+      : never
+    : never;
 
 type BaseStateMachineEntity<
   State extends AllowedNames,
