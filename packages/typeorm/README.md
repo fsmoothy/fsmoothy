@@ -66,18 +66,12 @@ interface IOrderItemContext = FSMContext<{
 To create an entity class, it must extend `StateMachineEntity` and have defined initial state and transitions. Additionally, you can combine `StateMachineEntity` with your own `BaseEntity`, which should be extended from TypeORM's base entity.
 
 ```typescript
-class BaseEntity extends TypeOrmBaseEntity {
-  @PrimaryGeneratedColumn()
-  id: string;
-}
-
 @Entity('order')
 class Order extends StateMachineEntity(
   {
-    itemsStatus: state({
+    itemsStatus: state<OrderItemState, OrderItemEvent, IOrderItemContext>({
       id: 'orderItemsStatus',
       initial: OrderItemState.draft,
-      persistContext: true,
       data: () => ({
         place: 'My warehouse',
       }),
@@ -92,10 +86,10 @@ class Order extends StateMachineEntity(
           from: OrderItemState.warehouse,
           event: OrderItemEvent.transfer,
           to: OrderItemState.warehouse,
-          guard(context: IOrderItemContext, place: string) {
+          guard(context, place: string) {
             return context.data.place !== place;
           },
-          onExit(context: IOrderItemContext, place: string) {
+          onExit(context:, place: string) {
             context.data.place = place;
           },
         },
@@ -112,7 +106,6 @@ class Order extends StateMachineEntity(
       ],
     }),
   },
-  BaseEntity, // It's optional
 ) {
   @Column({
     default: 0,
@@ -127,7 +120,6 @@ Let's take a look at the `StateMachineEntity` mixin. It accepts an object with t
 
 - `id` - a unique identifier for the state machine (used for debugging purposes)
 - `initial` - the initial state of the state machine
-- `persistContext` - if set to `true`, the state machine context will be saved to the database. Default value is `false`
 - `saveAfterTransition` - if `true`, the state machine will be saved to the database after each transition. Default value is `true`
 - `data` - initial data for the state machine context
 - `transitions` - an array of transitions

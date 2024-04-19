@@ -76,7 +76,6 @@ class Order extends StateMachineEntity(
     >({
       id: 'orderItemsStatus',
       initial: OrderItemState.Draft,
-      persistContext: true,
       data() {
         return {
           place: 'My warehouse',

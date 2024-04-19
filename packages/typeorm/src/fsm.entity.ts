@@ -12,7 +12,6 @@ export interface IStateMachineEntityColumnParameters<
   Event extends AllowedNames,
   Context extends FsmContext<unknown> = FsmContext<unknown>,
 > extends Omit<StateMachineParameters<State, Event, Context>, 'states'> {
-  persistContext?: boolean;
   /**
    * @default true
    */
