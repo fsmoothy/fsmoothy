@@ -1131,20 +1131,16 @@ describe('StateMachine', () => {
   });
 
   describe('hydrate', () => {
-    it('should be able to dehydrate state machine to string', () => {
+    it('should be able to dehydrate state machine to plain object', () => {
       const stateMachine = createFetchStateMachine();
 
-      expect(stateMachine.dehydrate()).toBe(
-        JSON.stringify({ current: 'idle', data: {} }),
-      );
+      expect(stateMachine.dehydrate()).toEqual({ current: 'idle', data: {} });
     });
 
-    it('should be able to dehydrate state machine from string', () => {
+    it('should be able to dehydrate state machine from plain object', () => {
       const stateMachine = createFetchStateMachine();
 
-      stateMachine.hydrate(
-        JSON.stringify({ current: 'pending', data: { foo: 'bar' } }),
-      );
+      stateMachine.hydrate({ current: State.pending, data: { foo: 'bar' } });
 
       expect(stateMachine.current).toBe(State.pending);
       expect(stateMachine.data).toEqual({ foo: 'bar' });
@@ -1169,27 +1165,23 @@ describe('StateMachine', () => {
 
       const dehydrated = fsm.dehydrate();
 
-      expect(dehydrated).toBe(
-        JSON.stringify({
-          current: 'pending',
-          data: { foo: 'bar' },
-          nested: {
-            current: 'idle',
-            data: {},
-          },
-        }),
-      );
+      expect(dehydrated).toEqual({
+        current: 'pending',
+        data: { foo: 'bar' },
+        nested: {
+          current: 'idle',
+          data: {},
+        },
+      });
 
-      fsm.hydrate(
-        JSON.stringify({
-          current: State.pending,
-          data: { foo: 'bar' },
-          nested: {
-            current: State.idle,
-            data: {},
-          },
-        }),
-      );
+      fsm.hydrate({
+        current: State.pending,
+        data: { foo: 'bar' },
+        nested: {
+          current: State.idle,
+          data: {},
+        },
+      });
 
       expect(fsm.current).toBe(State.pending);
       expect(fsm.data).toEqual({ foo: 'bar' });

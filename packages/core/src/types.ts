@@ -3,24 +3,24 @@ import { _NestedStateMachine } from './nested';
 
 export type AllowedNames = string | number;
 
-export interface FsmContext<D extends object = never> {
+export interface FsmContext<D = never> {
   data: D;
 }
 
 export type Callback<
-  Context extends FsmContext<object>,
+  Context extends FsmContext<unknown>,
   T extends Array<any> = Array<any>,
 > = (context: Context, ...arguments_: T) => Promise<void> | void;
 
 export type Guard<
-  Context extends FsmContext<object>,
+  Context extends FsmContext<unknown>,
   T extends Array<any> = Array<any>,
 > = (context: Context, ...arguments_: T) => Promise<boolean> | boolean;
 
 export interface Transition<
   State extends AllowedNames | ReadonlyArray<AllowedNames>,
   Event extends AllowedNames,
-  Context extends FsmContext<object>,
+  Context extends FsmContext<unknown>,
 > {
   from: Array<State> | State;
   event: Event;
@@ -33,7 +33,7 @@ export interface Transition<
 
 export type Subscribers<
   Event extends AllowedNames,
-  Context extends FsmContext<object>,
+  Context extends FsmContext<unknown>,
 > = {
   [key in Event]?: Array<Callback<Context>>;
 };
@@ -67,7 +67,7 @@ type StateMachineCheckers<State extends AllowedNames> = {
 export type IStateMachine<
   State extends AllowedNames,
   Event extends AllowedNames,
-  Context extends FsmContext<object>,
+  Context extends FsmContext<unknown>,
 > = _StateMachine<State, Event, Context> &
   StateMachineEvents<Event> &
   StateMachineCheckers<State> &
@@ -78,7 +78,7 @@ export type HistoryTypes = 'none' | 'deep';
 export interface INestedStateMachineParameters<
   State extends AllowedNames,
   Event extends AllowedNames,
-  Context extends FsmContext<object>,
+  Context extends FsmContext<unknown>,
 > extends StateMachineParameters<State, Event, Context> {
   /**
    * The history type of the nested state machine.
@@ -90,7 +90,7 @@ export interface INestedStateMachineParameters<
 export type INestedStateMachine<
   State extends AllowedNames,
   Event extends AllowedNames,
-  Context extends FsmContext<object>,
+  Context extends FsmContext<unknown>,
 > = _NestedStateMachine<State, Event, Context> &
   StateMachineEvents<Event> &
   StateMachineCheckers<State> &
@@ -100,7 +100,7 @@ export type NestedStateMachineConstructor = {
   new <
     State extends AllowedNames,
     Event extends AllowedNames,
-    Context extends FsmContext<object>,
+    Context extends FsmContext<unknown>,
   >(
     parameters: StateMachineParameters<State, Event, Context>,
     parent?: _StateMachine<any, any, any>,
@@ -110,19 +110,16 @@ export type NestedStateMachineConstructor = {
 export interface ParallelState<
   State extends AllowedNames,
   Event extends AllowedNames,
-  Context extends FsmContext<object>,
+  Context extends FsmContext<unknown>,
 > {
   type: 'parallel';
   machines: ReadonlyArray<INestedStateMachine<State, Event, Context>>;
 }
 
-export interface HydratedState<
-  State extends AllowedNames,
-  Data extends object,
-> {
+export interface HydratedState<State extends AllowedNames, Data> {
   current: State;
   data: Data;
-  nested?: HydratedState<AllowedNames, object>;
+  nested?: HydratedState<AllowedNames, unknown>;
 }
 
 export type Nested =
@@ -134,7 +131,7 @@ export type States<State extends AllowedNames> = Map<State, Nested | null>;
 type Injectable<
   State extends AllowedNames | ReadonlyArray<AllowedNames>,
   Event extends AllowedNames,
-  Context extends FsmContext<object> = FsmContext<object>,
+  Context extends FsmContext<unknown> = FsmContext<unknown>,
 > = {
   [Key in keyof Omit<Context, 'data'>]?: (
     fsm: IStateMachine<
@@ -148,7 +145,7 @@ type Injectable<
 export interface StateMachineParameters<
   State extends AllowedNames | ReadonlyArray<AllowedNames>,
   Event extends AllowedNames,
-  Context extends FsmContext<object> = FsmContext<object>,
+  Context extends FsmContext<unknown> = FsmContext<unknown>,
 > {
   readonly data?: (
     parameters: StateMachineParameters<State, Event, Context>,
@@ -172,7 +169,7 @@ export type StateMachineConstructor = {
   new <
     State extends AllowedNames,
     Event extends AllowedNames,
-    Context extends FsmContext<object> = FsmContext<never>,
+    Context extends FsmContext<unknown> = FsmContext<never>,
   >(
     parameters: StateMachineParameters<State, Event, Context>,
   ): IStateMachine<State, Event, Context>;
@@ -181,7 +178,7 @@ export type StateMachineConstructor = {
 export interface IInternalTransition<
   State extends AllowedNames,
   Event extends AllowedNames,
-  Context extends FsmContext<object> = FsmContext<never>,
+  Context extends FsmContext<unknown> = FsmContext<never>,
 > extends Transition<State, Event, Context> {
   _original: Transition<State, Event, Context>;
 }
@@ -189,5 +186,5 @@ export interface IInternalTransition<
 export type TransitionsStorage<
   State extends AllowedNames,
   Event extends AllowedNames,
-  Context extends FsmContext<object> = FsmContext<never>,
+  Context extends FsmContext<unknown> = FsmContext<never>,
 > = Map<Event, Map<State, Array<IInternalTransition<State, Event, Context>>>>;

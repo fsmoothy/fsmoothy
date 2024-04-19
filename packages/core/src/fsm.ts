@@ -32,7 +32,7 @@ import {
 export class _StateMachine<
   const State extends AllowedNames,
   const Event extends AllowedNames,
-  Context extends FsmContext<object>,
+  Context extends FsmContext<unknown>,
 > {
   protected _context = {} as Context;
 
@@ -477,38 +477,37 @@ export class _StateMachine<
   }
 
   /**
-   * Hydrates the state machine to JSON.
+   * Hydrates the state machine to plain object.
    *
    * @returns Hydrated JSON.
    */
-  dehydrate(): string {
+  dehydrate(): HydratedState<State, Context['data']> {
     const hydrated: HydratedState<State, Context['data']> = {
       current: this.current,
       data: this._context.data,
     };
 
     if (this.#activeChild) {
-      hydrated.nested = JSON.parse(this.#activeChild.dehydrate());
+      hydrated.nested = this.#activeChild.dehydrate();
     }
 
-    return JSON.stringify(hydrated);
+    return hydrated;
   }
 
   /**
-   * Apply hydrated JSON to the state machine.
+   * Apply hydrated plain object to the state machine.
    *
    * @param hydrated - Hydrated JSON.
    */
-  hydrate(hydrated: string) {
-    const hydratedObject: HydratedState<State, Context['data']> =
-      JSON.parse(hydrated);
+  hydrate(hydrated: HydratedState<State, Context['data']>) {
+    this.#last = identityTransition(hydrated.current);
+    this._context.data = hydrated.data;
 
-    this.#last = identityTransition(hydratedObject.current);
-    this._context.data = hydratedObject.data;
-
-    if (this.#activeChild) {
-      this.#activeChild.hydrate(JSON.stringify(hydratedObject.nested));
+    if (this.#activeChild && hydrated.nested) {
+      this.#activeChild.hydrate(hydrated.nested);
     }
+
+    return this;
   }
 
   protected populateContext(parameters: StateMachineParameters<any, any, any>) {

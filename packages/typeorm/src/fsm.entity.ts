@@ -10,7 +10,7 @@ import { BaseEntity, Column, getMetadataArgsStorage } from 'typeorm';
 export interface IStateMachineEntityColumnParameters<
   State extends AllowedNames,
   Event extends AllowedNames,
-  Context extends FsmContext<object> = FsmContext<object>,
+  Context extends FsmContext<unknown> = FsmContext<unknown>,
 > extends Omit<StateMachineParameters<State, Event, Context>, 'states'> {
   persistContext?: boolean;
   /**
@@ -58,7 +58,7 @@ type ExtractContext<
 type BaseStateMachineEntity<
   State extends AllowedNames,
   Event extends AllowedNames,
-  Context extends FsmContext<object> = FsmContext<object>,
+  Context extends FsmContext<unknown> = FsmContext<unknown>,
   Column extends string = string,
 > = BaseEntity & {
   [key in Column]: unknown;
@@ -71,37 +71,33 @@ type BaseStateMachineEntity<
 const buildAfterLoadMethodName = (column: string) =>
   `__${column}FSM__afterLoad` as const;
 
-const buildContextColumnName = (column: string) =>
-  `__${column}FSM__context` as const;
+const buildDehydratedColumnName = (column: string) =>
+  `__${column}FSM__dehydrated` as const;
 
 function initializeStateMachine<
   const State extends AllowedNames,
   const Event extends AllowedNames,
-  Context extends FsmContext<object> = FsmContext<object>,
+  Context extends FsmContext<unknown> = FsmContext<unknown>,
   const Column extends string = string,
 >(
   this: BaseStateMachineEntity<State, Event, Context, Column>,
   column: Column,
   parameters: IStateMachineEntityColumnParameters<State, Event, Context>,
 ) {
-  const {
-    persistContext,
-    saveAfterTransition = true,
-    transitions,
-    data,
-  } = parameters;
-  // @ts-expect-error - readonly property
+  const dehydratedColumnName = buildDehydratedColumnName(column);
+
+  const { saveAfterTransition = true, transitions } = parameters;
+  // @ts-expect-error - change readonly property
   parameters.transitions = transitions?.map(function (transition) {
     return {
       ...transition,
       async onExit(this: any, context: Context, ...arguments_: Array<unknown>) {
         this[column] = transition.to;
+        this[dehydratedColumnName] = JSON.stringify(
+          this.fsm[column].dehydrate(),
+        );
 
         await transition.onExit?.call(this, context, ...arguments_);
-
-        if (persistContext) {
-          this[buildContextColumnName(column)] = JSON.stringify(context.data);
-        }
 
         if (saveAfterTransition) {
           await this.save();
@@ -110,27 +106,10 @@ function initializeStateMachine<
     };
   });
 
-  let _data = typeof data === 'string' ? JSON.parse(data) : data;
-
-  if (
-    persistContext &&
-    // @ts-expect-error - monkey patching
-    Object.keys(this[buildContextColumnName(column)] as object).length > 0
-  ) {
-    // @ts-expect-error - monkey patching
-    _data = this[buildContextColumnName(column)];
-  }
-
-  if (typeof _data !== 'function') {
-    _data = () => _data;
-  }
-
-  this.fsm[column] = new StateMachine({
-    ...parameters,
-    initial: this[column] as State,
-    data,
-  });
-
+  // @ts-expect-error - monkey patching
+  const dehydrated = JSON.parse(this[dehydratedColumnName]);
+  dehydrated.current = this[column];
+  this.fsm[column] = new StateMachine(parameters).hydrate(dehydrated);
   this.fsm[column].bind(this);
 }
 
@@ -189,19 +168,19 @@ export const StateMachineEntity = function <
 
   const metadataStorage = getMetadataArgsStorage();
 
-  for (const [column, parameter] of Object.entries(parameters)) {
-    const _parameter = parameter as IStateMachineEntityColumnParameters<
+  for (const [column, _parameter] of Object.entries(parameters)) {
+    const parameter = _parameter as IStateMachineEntityColumnParameters<
       AllowedNames,
       AllowedNames,
-      FsmContext<object>
+      FsmContext<unknown>
     >;
-    const { persistContext, initial } = _parameter;
+    const { initial } = parameter;
 
     const afterLoadMethodName = buildAfterLoadMethodName(column);
 
     Object.defineProperty(_StateMachineEntity.prototype, afterLoadMethodName, {
       value: function () {
-        initializeStateMachine.call(this, column, _parameter);
+        initializeStateMachine.call(this, column, parameter);
       },
     });
 
@@ -224,32 +203,25 @@ export const StateMachineEntity = function <
       column,
     );
 
-    if (persistContext) {
-      const contextColumnName = buildContextColumnName(column);
-      Object.defineProperty(_StateMachineEntity.prototype, contextColumnName, {
-        value: {},
-        writable: true,
-      });
+    const dehydratedString = JSON.stringify(
+      new StateMachine(parameter).dehydrate(),
+    );
+    const dehydratedColumnName = buildDehydratedColumnName(column);
+    Object.defineProperty(_StateMachineEntity.prototype, dehydratedColumnName, {
+      value: dehydratedString,
+      writable: true,
+    });
 
-      Reflect.decorate(
-        [
-          Column({
-            type: 'text',
-            default: '{}',
-            transformer: {
-              from(value) {
-                return value;
-              },
-              to(value) {
-                return JSON.stringify(value);
-              },
-            },
-          }),
-        ],
-        _StateMachineEntity.prototype,
-        contextColumnName,
-      );
-    }
+    Reflect.decorate(
+      [
+        Column({
+          type: 'text',
+          default: dehydratedString,
+        }),
+      ],
+      _StateMachineEntity.prototype,
+      dehydratedColumnName,
+    );
 
     metadataStorage.entityListeners.push(
       {

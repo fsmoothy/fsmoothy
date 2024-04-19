@@ -25,7 +25,7 @@ const SpecialSymbols = new Set([All, IdentityEvent]);
 export function identityTransition<
   State extends AllowedNames,
   Event extends AllowedNames,
-  Context extends FsmContext<object> = FsmContext<never>,
+  Context extends FsmContext<unknown> = FsmContext<never>,
 >(state: State) {
   const transition = {
     from: state,
@@ -110,7 +110,7 @@ export function prepareTransitions(
 
 export function prepareSubscribers<
   Event extends AllowedNames,
-  Context extends FsmContext<object>,
+  Context extends FsmContext<unknown>,
 >(this: any, subscribers?: Subscribers<Event, Context>) {
   const subscribersMap = new Map<
     Event,

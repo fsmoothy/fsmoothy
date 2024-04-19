@@ -36,10 +36,10 @@ class File
       transitions: [
         t(FileState.Pending, FileEvent.Start, FileState.Uploading),
         t(FileState.Uploading, FileEvent.Finish, FileState.Completed, {
-          async guard(this: IFile, _context: never, url: string) {
+          async guard(this: IFile, _context, url: string) {
             return this.url !== url;
           },
-          async onEnter(this: File, _context: never, url: string | null) {
+          async onEnter(this: File, _context, url: string | null) {
             this.url = url;
           },
         }),

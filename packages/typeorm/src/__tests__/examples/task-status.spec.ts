@@ -227,7 +227,6 @@ describe('Task Status', () => {
         ]),
       ),
     );
-
     await queryRunner.commitTransaction();
 
     const updatedTask1 = await dataSource.manager.findOneByOrFail(Task, {

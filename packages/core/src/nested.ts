@@ -14,7 +14,7 @@ type NestedStateMachineParent = _StateMachine<any, any, any>;
 export class _NestedStateMachine<
   const State extends AllowedNames,
   const Event extends AllowedNames,
-  Context extends FsmContext<object>,
+  Context extends FsmContext<unknown>,
 > extends _StateMachine<State, Event, Context> {
   readonly type = 'nested';
   readonly history: HistoryTypes;
@@ -45,7 +45,7 @@ export const NestedStateMachine =
 export function nested<
   const State extends AllowedNames,
   const Event extends AllowedNames,
-  Context extends FsmContext<object>,
+  Context extends FsmContext<unknown>,
 >(
   machineParameters: INestedStateMachineParameters<State, Event, Context>,
 ): INestedStateMachine<State, Event, Context> {
@@ -63,7 +63,7 @@ export function parallel<
   >,
   const State extends AllowedNames = NestedMachines[number]['current'],
   const Event extends AllowedNames = NestedMachines[number]['events'][number],
-  Context extends FsmContext<object> = NestedMachines[number]['context'],
+  Context extends FsmContext<unknown> = NestedMachines[number]['context'],
 >(...nested: NestedMachines): ParallelState<State, Event, Context> {
   return {
     type: 'parallel',

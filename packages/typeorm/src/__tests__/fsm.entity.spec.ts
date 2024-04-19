@@ -1,3 +1,4 @@
+import { FsmContext } from '@fsmoothy/core';
 import {
   Column,
   DataSource,
@@ -58,17 +59,21 @@ class BaseEntity extends TypeOrmBaseEntity {
 @Entity('order')
 class Order extends StateMachineEntity(
   {
-    status: state({
+    status: state<OrderState, OrderEvent>({
       id: 'orderStatus',
       initial: OrderState.Draft,
       transitions: [
         t(OrderState.Draft, OrderEvent.Create, OrderState.Pending),
         t(OrderState.Pending, OrderEvent.Pay, OrderState.Paid),
         t(OrderState.Paid, OrderEvent.Ship, OrderState.Shipped),
-        t(OrderState.Shipped, OrderEvent.Complete, OrderEvent.Complete),
+        t(OrderState.Shipped, OrderEvent.Complete, OrderState.Completed),
       ],
     }),
-    itemsStatus: state({
+    itemsStatus: state<
+      OrderItemState,
+      OrderItemEvent,
+      FsmContext<IOrderItemContext>
+    >({
       id: 'orderItemsStatus',
       initial: OrderItemState.Draft,
       persistContext: true,
@@ -84,17 +89,19 @@ class Order extends StateMachineEntity(
           OrderItemEvent.Assemble,
           OrderItemState.Warehouse,
         ),
-        {
-          from: OrderItemState.Warehouse,
-          event: OrderItemEvent.Transfer,
-          to: OrderItemState.Warehouse,
-          guard(context: IOrderItemContext, place: string) {
-            return context.place !== place;
+        t(
+          OrderItemState.Warehouse,
+          OrderItemEvent.Transfer,
+          OrderItemState.Warehouse,
+          {
+            guard(context, place: string) {
+              return context.data.place !== place;
+            },
+            onExit(context, place: string) {
+              context.data.place = place;
+            },
           },
-          onExit(context: IOrderItemContext, place: string) {
-            context.place = place;
-          },
-        },
+        ),
         t(
           [OrderItemState.Assembly, OrderItemState.Warehouse],
           OrderItemEvent.Ship,
