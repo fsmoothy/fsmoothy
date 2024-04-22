@@ -1,11 +1,21 @@
-export class StateMachineError extends Error {
-  constructor(message: string, cause?: unknown) {
-    super(message);
-    this.name = 'StateMachineError';
+import { AllowedNames } from './types';
+
+export class StateMachineTransitionError extends Error {
+  constructor(
+    id: string,
+    from: AllowedNames,
+    event: AllowedNames,
+    cause?: unknown,
+  ) {
+    super(
+      `Event ${String(event)} is not allowed in state ${String(from)} of ${id}`,
+    );
+    this.name = 'StateMachineTransitionError';
     this.cause = cause;
   }
 }
 
-export const isStateMachineError = (
+export const isStateMachineTransitionError = (
   error: unknown,
-): error is StateMachineError => error instanceof StateMachineError;
+): error is StateMachineTransitionError =>
+  error instanceof StateMachineTransitionError;

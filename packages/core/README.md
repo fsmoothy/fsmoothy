@@ -258,6 +258,16 @@ console.log(orderItemFSM.canTransfer('Another warehouse')); // false
 
 Also `can(event: Event, ...args)` method is available.
 
+#### Try transition
+
+We also can use `tryTransition` method to check if the transition is available and make it.
+
+```typescript
+await orderItemFSM.tryTransition(OrderItemEvent.create) // true
+```
+
+It returns `false` if the transition is not available instead of throwing an error.
+
 ### Subscribers
 
 You can subscribe to transition using the `on` method. And unsubscribe using the `off` method.

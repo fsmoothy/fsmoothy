@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { StateMachine } from '../fsm';
-import { nested, parallel } from '../nested';
-import { All } from '../symbols';
-import { t } from '../transition';
-
-import { isStateMachineError } from './../fsm.error';
-import { FsmContext } from './../types';
+import {
+  StateMachine,
+  isStateMachineTransitionError,
+  nested,
+  parallel,
+  All,
+  t,
+  FsmContext,
+} from '..';
 
 enum State {
   idle = 'idle',
@@ -213,7 +215,7 @@ describe('StateMachine', () => {
         // @ts-expect-error - we don't have this event
         await stateMachine.transition('unknown event');
       } catch (error) {
-        expect(isStateMachineError(error)).toBe(true);
+        expect(isStateMachineTransitionError(error)).toBe(true);
       }
 
       expect.assertions(1);
@@ -277,6 +279,31 @@ describe('StateMachine', () => {
       stateMachine.data.foo = 'foo';
       await stateMachine.fetch();
       expect(stateMachine.isResolved()).toBe(true);
+    });
+  });
+
+  describe('tryTransition', () => {
+    it('should return true if transition is possible', async () => {
+      const stateMachine = createFetchStateMachine();
+
+      expect(await stateMachine.tryTransition(Event.fetch)).toBe(true);
+    });
+
+    it('should return false if transition is not possible', async () => {
+      const stateMachine = createFetchStateMachine();
+
+      expect(await stateMachine.tryTransition(Event.resolve)).toBe(false);
+    });
+
+    it('should throw error if error occurs during transition', async () => {
+      const stateMachine = createFetchStateMachine();
+      stateMachine.on(Event.fetch, () => {
+        throw new Error('test');
+      });
+
+      await expect(stateMachine.tryTransition(Event.fetch)).rejects.toThrow(
+        'test',
+      );
     });
   });
 

@@ -9,20 +9,20 @@ export interface FsmContext<D = never> {
 
 export type Callback<
   Context extends FsmContext<unknown>,
-  T extends Array<any> = Array<any>,
+  T extends Array<unknown> = Array<unknown>,
 > = (context: Context, ...arguments_: T) => Promise<void> | void;
 
 export type Guard<
   Context extends FsmContext<unknown>,
-  T extends Array<any> = Array<any>,
+  T extends Array<unknown> = Array<unknown>,
 > = (context: Context, ...arguments_: T) => Promise<boolean> | boolean;
 
 export interface Transition<
-  State extends AllowedNames | ReadonlyArray<AllowedNames>,
+  State extends AllowedNames,
   Event extends AllowedNames,
   Context extends FsmContext<unknown>,
 > {
-  from: Array<State> | State;
+  from: ReadonlyArray<State> | State;
   event: Event;
   to: State;
   onEnter?: Callback<Context>;
@@ -103,7 +103,7 @@ export type NestedStateMachineConstructor = {
     Context extends FsmContext<unknown>,
   >(
     parameters: StateMachineParameters<State, Event, Context>,
-    parent?: _StateMachine<any, any, any>,
+    parent?: _StateMachine<AllowedNames, AllowedNames, FsmContext<unknown>>,
   ): INestedStateMachine<State, Event, Context>;
 };
 
@@ -122,6 +122,7 @@ export interface HydratedState<State extends AllowedNames, Data> {
   nested?: HydratedState<AllowedNames, unknown>;
 }
 
+// TODO: figure out how to type this
 export type Nested =
   | INestedStateMachine<any, any, any>
   | ParallelState<any, any, any>;
@@ -129,7 +130,7 @@ export type Nested =
 export type States<State extends AllowedNames> = Map<State, Nested | null>;
 
 type Injectable<
-  State extends AllowedNames | ReadonlyArray<AllowedNames>,
+  State extends AllowedNames,
   Event extends AllowedNames,
   Context extends FsmContext<unknown> = FsmContext<unknown>,
 > = {
@@ -143,7 +144,7 @@ type Injectable<
 };
 
 export interface StateMachineParameters<
-  State extends AllowedNames | ReadonlyArray<AllowedNames>,
+  State extends AllowedNames,
   Event extends AllowedNames,
   Context extends FsmContext<unknown> = FsmContext<unknown>,
 > {

@@ -1,4 +1,7 @@
-import { StateMachineError } from './fsm.error';
+import {
+  StateMachineTransitionError,
+  isStateMachineTransitionError,
+} from './fsm.error';
 import {
   identityTransition,
   prepareStates,
@@ -38,7 +41,7 @@ export class _StateMachine<
 
   constructor(parameters: StateMachineParameters<State, Event, Context>) {
     this.#initialParameters = parameters;
-    this.#_id = parameters.id ?? 'fsm';
+    this.#id = parameters.id ?? 'fsm';
     this.#last = identityTransition(parameters.initial);
 
     this.#states = (prepareStates<State>).call(this, parameters);
@@ -55,7 +58,7 @@ export class _StateMachine<
   }
 
   #last: Transition<State, Event, Context>;
-  #_id: string;
+  #id: string;
   #contextPromise: Promise<Context> | null = null;
   #boundTo: any = this;
   #dataPromise: Promise<Context['data']> | null = null;
@@ -366,11 +369,7 @@ export class _StateMachine<
     // propagate to parent
 
     if (!(await this.can(event, ...arguments_))) {
-      throw new StateMachineError(
-        `Event ${String(event)} is not allowed in state ${String(
-          this.current,
-        )} of ${this.#_id}`,
-      );
+      throw new StateMachineTransitionError(this.#id, this.current, event);
     }
 
     const transition = (await this.getAllowedTransition(event, ...arguments_))!;
@@ -390,6 +389,25 @@ export class _StateMachine<
     await this.executeTransition(transition, ...arguments_);
 
     return this;
+  }
+
+  /**
+   * Tries to transition the state machine to the next state.
+   * Returns `false` if the transition is not allowed instead of throwing an error.
+   */
+  async tryTransition<Arguments extends Array<unknown> = Array<unknown>>(
+    event: Event,
+    ...arguments_: Arguments
+  ): Promise<boolean> {
+    try {
+      await this.transition(event, ...arguments_);
+      return true;
+    } catch (error) {
+      if (isStateMachineTransitionError(error)) {
+        return false;
+      }
+      throw error;
+    }
   }
 
   /**
@@ -660,47 +678,25 @@ export class _StateMachine<
   private async executeTransition<
     Arguments extends Array<unknown> = Array<unknown>,
   >(transition: Transition<State, Event, Context>, ...arguments_: Arguments) {
-    const { from, to, onEnter, onExit, event } = transition ?? {};
+    const { onEnter, onExit, event } = transition ?? {};
 
     const subscribers = this.#subscribers.get(event);
     const allSubscribers = this.#subscribers.get(All);
 
-    try {
-      await this.#last.onLeave?.(this.context, ...arguments_);
-      await onEnter?.(this.context, ...arguments_);
-      this.makeTransition(transition);
-      this.switchNestedState(transition);
+    await this.#last.onLeave?.(this.context, ...arguments_);
+    await onEnter?.(this.context, ...arguments_);
+    this.makeTransition(transition);
+    this.switchNestedState(transition);
 
-      for (const subscriber of subscribers?.values() ?? []) {
-        await subscriber(this.context, ...arguments_);
-      }
-
-      for (const subscriber of allSubscribers?.values() ?? []) {
-        await subscriber(this.context, ...arguments_);
-      }
-
-      await onExit?.(this.context, ...arguments_);
-    } catch (error) {
-      if (error instanceof StateMachineError) {
-        throw error;
-      }
-
-      if (!(error instanceof Error)) {
-        throw new StateMachineError(
-          `Exception caught in ${this.#_id} on transition from ${String(
-            from,
-          )} to ${String(to)}: ${error}`,
-          transition,
-        );
-      }
-
-      throw new StateMachineError(
-        `Exception caught in ${this.#_id} on transition from ${String(
-          from,
-        )} to ${String(to)}: ${error.message}`,
-        transition,
-      );
+    for (const subscriber of subscribers?.values() ?? []) {
+      await subscriber(this.context, ...arguments_);
     }
+
+    for (const subscriber of allSubscribers?.values() ?? []) {
+      await subscriber(this.context, ...arguments_);
+    }
+
+    await onExit?.(this.context, ...arguments_);
   }
 }
 
