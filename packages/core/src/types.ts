@@ -9,12 +9,14 @@ export interface FsmContext<D = never> {
 
 export type Callback<
   Context extends FsmContext<unknown>,
-  T extends Array<unknown> = Array<unknown>,
+  // TODO: figure out how to type this
+  T extends Array<any> = Array<any>,
 > = (context: Context, ...arguments_: T) => Promise<void> | void;
 
 export type Guard<
   Context extends FsmContext<unknown>,
-  T extends Array<unknown> = Array<unknown>,
+  // TODO: figure out how to type this
+  T extends Array<any> = Array<any>,
 > = (context: Context, ...arguments_: T) => Promise<boolean> | boolean;
 
 export interface Transition<
