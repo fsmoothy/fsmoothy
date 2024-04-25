@@ -191,3 +191,21 @@ export type TransitionsStorage<
   Event extends AllowedNames,
   Context extends FsmContext<unknown> = FsmContext<never>,
 > = Map<Event, Map<State, Array<IInternalTransition<State, Event, Context>>>>;
+
+export interface TransitionInspectRepresentation {
+  from: AllowedNames;
+  event: AllowedNames;
+  to: AllowedNames;
+  hasGuard: boolean;
+  hasOnEnter: boolean;
+  hasOnExit: boolean;
+  hasOnLeave: boolean;
+}
+
+export interface IStateMachineInspectRepresentation {
+  id: string;
+  currentState: string;
+  data: unknown;
+  transitions: Array<TransitionInspectRepresentation>;
+  states: Array<AllowedNames>;
+}

@@ -7,10 +7,6 @@ export interface TransitionOptions<Context extends FsmContext<unknown>> {
   guard?: Guard<Context>;
 }
 
-function _noop() {
-  return;
-}
-
 /**
  * Creates a new transition.
  *
@@ -33,31 +29,21 @@ export const t = <
   from: ReadonlyArray<State> | State,
   event: Event,
   to: State,
-  guardOrOptions?: Guard<Context> | TransitionOptions<Context>,
+  guardOrOptions: Guard<Context> | TransitionOptions<Context> = {},
 ): Transition<State, Event, Context> => {
   if (typeof guardOrOptions === 'function') {
     return {
-      from: from as Array<State> | State,
+      from,
       event,
       to,
-      onLeave: _noop,
-      onExit: _noop,
-      onEnter: _noop,
       guard: guardOrOptions,
     };
   }
-
-  const {
-    onExit = _noop,
-    onEnter = _noop,
-    onLeave = _noop,
-    guard = () => true,
-    ...rest
-  } = guardOrOptions ?? {};
+  const { onExit, onEnter, onLeave, guard, ...rest } = guardOrOptions;
 
   return {
     ...rest,
-    from: from as Array<State> | State,
+    from,
     event,
     to,
     onLeave,

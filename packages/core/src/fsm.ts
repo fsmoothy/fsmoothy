@@ -3,14 +3,13 @@ import {
   isStateMachineTransitionError,
 } from './fsm.error';
 import {
-  identityTransition,
+  initialTransition,
   prepareStates,
   prepareTransitions,
   prepareSubscribers,
   populateEventMethods,
   populateCheckers,
   addIsChecker,
-  _true,
   addEventMethods,
 } from './heplers';
 import { All } from './symbols';
@@ -30,6 +29,8 @@ import {
   StateMachineParameters,
   States,
   TransitionsStorage,
+  IStateMachineInspectRepresentation,
+  TransitionInspectRepresentation,
 } from './types';
 
 export class _StateMachine<
@@ -42,7 +43,7 @@ export class _StateMachine<
   constructor(parameters: StateMachineParameters<State, Event, Context>) {
     this.#initialParameters = parameters;
     this.#id = parameters.id ?? 'fsm';
-    this.#last = identityTransition(parameters.initial);
+    this.#last = initialTransition(parameters.initial);
 
     this.#states = (prepareStates<State>).call(this, parameters);
 
@@ -124,18 +125,18 @@ export class _StateMachine<
    * All events in the state machine.
    */
   get events(): Array<Event> {
-    return [...this.#transitions.keys()];
+    return Array.from(this.#transitions.keys());
   }
 
   /**
    * All states in the state machine.
    */
   get states(): Array<State> {
-    return [...this.#states.keys()];
+    return Array.from(this.#states.keys());
   }
 
   get nested(): Array<Nested> {
-    return [...this.#states.values()].filter(
+    return Array.from(this.#states.values()).filter(
       (v) => v !== null,
     ) as Array<Nested>;
   }
@@ -156,24 +157,23 @@ export class _StateMachine<
     guardOrOptions?: Guard<Context> | TransitionOptions<Context>,
   ) {
     const transition = t(from, event, to, guardOrOptions);
-    const states = Array.isArray(from) ? [...from, to] : [from, to];
+    const states = new Set(Array.isArray(from) ? [...from] : [from]);
 
     addEventMethods.call(this, event);
 
-    if (!this.#transitions.has(event)) {
-      this.#transitions.set(event, new Map());
-    }
+    const eventMap = this.#transitions.get(event) ?? new Map();
 
     for (const state of states) {
+      this.#states.set(state, null);
       addIsChecker.call(this, state);
 
-      const transitionsByState = this.#transitions.get(event);
-
-      if (!transitionsByState?.has(state)) {
-        transitionsByState?.set(state, []);
+      if (!eventMap?.has(state)) {
+        eventMap?.set(state, []);
       }
-      transitionsByState?.get(state)?.push(this.bindToCallbacks(transition));
+      eventMap?.get(state)?.push(this.bindToCallbacks(transition));
     }
+
+    this.#transitions.set(event, eventMap);
 
     return this as unknown as IStateMachine<
       State | NewState,
@@ -259,7 +259,7 @@ export class _StateMachine<
     // check has from: all
     if (transitionsByState?.has(All)) {
       for (const transition of transitionsByState.get(All) ?? []) {
-        const { guard = _true } = transition;
+        const { guard } = transition;
 
         const result = await (guard?.(this._context, ...arguments_) ?? true);
 
@@ -276,7 +276,7 @@ export class _StateMachine<
     const transitions = transitionsByState.get(this.current) ?? [];
 
     for (const transition of transitions) {
-      const { guard = _true } = transition;
+      const { guard } = transition;
 
       const result = await (guard?.(this._context, ...arguments_) ?? true);
 
@@ -518,7 +518,7 @@ export class _StateMachine<
    * @param hydrated - Hydrated JSON.
    */
   hydrate(hydrated: HydratedState<State, Context['data']>) {
-    this.#last = identityTransition(hydrated.current);
+    this.#last = initialTransition(hydrated.current);
     this._context.data = hydrated.data;
 
     if (this.#activeChild && hydrated.nested) {
@@ -526,6 +526,40 @@ export class _StateMachine<
     }
 
     return this;
+  }
+
+  /**
+   * Inspects the state machine.
+   *
+   * @returns representation of the state machine.
+   */
+  inspect(): IStateMachineInspectRepresentation {
+    const transitions = [];
+    for (const [event, transitions_] of this.#transitions.entries()) {
+      for (const [from, transitions__] of transitions_.entries()) {
+        for (const transition of transitions__) {
+          const t: TransitionInspectRepresentation = {
+            from,
+            event,
+            to: transition.to,
+            hasGuard: Boolean(transition.guard),
+            hasOnEnter: Boolean(transition.onEnter),
+            hasOnExit: Boolean(transition.onExit),
+            hasOnLeave: Boolean(transition.onLeave),
+          };
+
+          transitions.push(t);
+        }
+      }
+    }
+
+    return {
+      currentState: this.current.toString(),
+      transitions,
+      id: this.#id,
+      states: this.states,
+      data: this._context.data,
+    };
   }
 
   protected populateContext(parameters: StateMachineParameters<any, any, any>) {
@@ -598,7 +632,7 @@ export class _StateMachine<
 
     if (transitions) {
       for (const t of transitions) {
-        const { guard = _true } = t;
+        const { guard } = t;
 
         const result = await (guard?.(this._context, ...arguments_) ?? true);
 
@@ -612,7 +646,7 @@ export class _StateMachine<
     const allTransitions = transitionsByState.get(All);
     if (allTransitions) {
       for (const t of allTransitions) {
-        const { guard = _true } = t;
+        const { guard } = t;
 
         const result = await (guard?.(this._context, ...arguments_) ?? true);
 

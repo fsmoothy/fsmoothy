@@ -1216,4 +1216,35 @@ describe('StateMachine', () => {
       expect(fsm.child?.data).toEqual({});
     });
   });
+
+  describe('inspect', () => {
+    it('should return object with current state and data', () => {
+      expect(createFetchStateMachine().inspect()).toEqual({
+        currentState: 'idle',
+        transitions: [
+          {
+            from: 'idle',
+            event: 'fetch',
+            to: 'pending',
+            hasGuard: false,
+            hasOnEnter: false,
+            hasOnExit: false,
+            hasOnLeave: false,
+          },
+          {
+            from: 'pending',
+            event: 'resolve',
+            to: 'idle',
+            hasGuard: false,
+            hasOnEnter: false,
+            hasOnExit: false,
+            hasOnLeave: false,
+          },
+        ],
+        id: 'fetch fsm',
+        states: ['idle', 'pending'],
+        data: {},
+      });
+    });
+  });
 });

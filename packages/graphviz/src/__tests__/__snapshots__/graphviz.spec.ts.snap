@@ -1,0 +1,35 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`graphviz > should render a state machine 1`] = `
+"digraph "fsm" {
+  "data" [
+    label = "isCleanerAvailable: true";
+    shape = "box";
+  ];
+  "sleeping" [
+    color = "black";
+  ];
+  "running" [
+    color = "green";
+  ];
+  "cleaning" [
+    color = "black";
+  ];
+  "sleeping" -> "running" [
+    label = "run";
+    color = "black";
+  ];
+  "running" -> "cleaning" [
+    label = "clean";
+    color = "red";
+  ];
+  "cleaning" -> "sleeping" [
+    label = "sleep";
+    color = "black";
+  ];
+  "running" -> "sleeping" [
+    label = "sleep";
+    color = "black";
+  ];
+}"
+`;

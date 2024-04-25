@@ -7,6 +7,7 @@ export type {
   IStateMachine,
   AllowedNames,
   StateMachineParameters,
+  IStateMachineInspectRepresentation,
 } from './types';
 export { isStateMachineTransitionError } from './fsm.error';
 export { All } from './symbols';

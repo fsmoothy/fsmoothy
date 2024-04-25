@@ -90,6 +90,7 @@ module.exports = {
         ignore: ['e2e'],
       },
     ],
+    'unicorn/prefer-spread': OFF,
   },
   overrides: [
     {

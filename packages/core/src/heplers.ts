@@ -10,32 +10,29 @@ import {
   Nested,
 } from './types';
 
-const IdentityEvent = Symbol('IdentityEvent') as any;
+export const InitialEvent = Symbol('InitialEvent') as any;
 
 export function capitalize(parameter: string) {
   return parameter.charAt(0).toUpperCase() + parameter.slice(1);
 }
 
-export function _true() {
-  return true;
-}
+const SpecialSymbols = new Set([All, InitialEvent]);
 
-const SpecialSymbols = new Set([All, IdentityEvent]);
-
-export function identityTransition<
+export function initialTransition<
   State extends AllowedNames,
   Event extends AllowedNames,
   Context extends FsmContext<unknown> = FsmContext<never>,
->(state: State) {
-  const transition = {
-    from: state,
-    event: IdentityEvent,
-    to: state,
-  };
+>(state: State): IInternalTransition<State, Event, Context> {
   return {
-    ...transition,
-    _original: transition,
-  } as IInternalTransition<State, Event, Context>;
+    from: state,
+    event: InitialEvent,
+    to: state,
+    _original: {
+      from: state,
+      event: InitialEvent,
+      to: state,
+    },
+  };
 }
 
 export function addIsChecker(this: any, state: AllowedNames) {
@@ -80,12 +77,8 @@ export function prepareStates<State extends AllowedNames>(
 
 export function prepareTransitions(
   this: any,
-  transitions?: Array<Transition<AllowedNames, AllowedNames, any>>,
+  transitions: Array<Transition<AllowedNames, AllowedNames, any>> = [],
 ) {
-  if (!transitions) {
-    return new Map();
-  }
-
   return transitions.reduce((accumulator, transition) => {
     const { from, event } = transition;
     const froms = Array.isArray(from) ? from : [from];
