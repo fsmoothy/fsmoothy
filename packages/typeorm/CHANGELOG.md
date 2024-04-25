@@ -1,5 +1,18 @@
 # @fsmoothy/typeorm
 
+## 2.1.0
+
+### Minor Changes
+
+- [`98ea601`](https://github.com/fsmoothy/fsmoothy/commit/98ea6019fd920ddbff75e084b77d2c8f4533bce5) Thanks [@bondiano](https://github.com/bondiano)! - improve error typing, add tryTransition method
+
+### Patch Changes
+
+- [`2ab462d`](https://github.com/fsmoothy/fsmoothy/commit/2ab462d514897f34b6f987c2b78927e0f6fd34ce) Thanks [@bondiano](https://github.com/bondiano)! - feat: remove extra persistContext parameter
+
+- Updated dependencies [[`a444ac4`](https://github.com/fsmoothy/fsmoothy/commit/a444ac4162c7ae4c274b6fb22eb2c86bc81e73d4), [`4b6fed9`](https://github.com/fsmoothy/fsmoothy/commit/4b6fed9866a5df182a206c0c68ab84773f60a87e), [`98ea601`](https://github.com/fsmoothy/fsmoothy/commit/98ea6019fd920ddbff75e084b77d2c8f4533bce5)]:
+  - @fsmoothy/core@1.3.0
+
 ## 2.0.0
 
 ### Major Changes
