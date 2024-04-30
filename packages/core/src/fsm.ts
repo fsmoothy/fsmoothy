@@ -686,6 +686,7 @@ export class _StateMachine<
     if (child.type === 'parallel') {
       this.#activeParallelState = child;
 
+      // we start processing from the first nested machine
       child = child.machines[0];
 
       return;
