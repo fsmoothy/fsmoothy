@@ -56,8 +56,7 @@ class BaseEntity extends TypeOrmBaseEntity {
   id: string;
 }
 
-@Entity('order')
-class Order extends StateMachineEntity(
+const OrderStateMachineEntity = StateMachineEntity(
   {
     status: state<OrderState, OrderEvent>({
       id: 'orderStatus',
@@ -115,7 +114,10 @@ class Order extends StateMachineEntity(
     }),
   },
   BaseEntity,
-) {
+);
+
+@Entity('order')
+class Order extends OrderStateMachineEntity {
   @Column({
     default: 0,
   })

@@ -8,8 +8,17 @@
 
 `fsmoothy` is a totally pragmatic library for building state machines.
 
+## Features
+
+- TypeScript native
+- Hooks for state transitions
+- Promises are used for all transition
+- Magic methods for checkers, events and transitions
+- Simple and powerful API
+- Use it in browser or Node.js
+
 ## Libraries and tools
 
-- [core](https://github.com/fsmoothy/fsmoothy/tree/master/packages/core)
+- [Core](https://github.com/fsmoothy/fsmoothy/tree/master/packages/core)
 - [TypeORM integration](https://github.com/fsmoothy/fsmoothy/tree/master/packages/typeorm)
 - [Graphviz renderer](https://github.com/fsmoothy/fsmoothy/tree/master/packages/graphviz)

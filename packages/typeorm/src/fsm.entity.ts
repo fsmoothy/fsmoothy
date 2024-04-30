@@ -118,7 +118,7 @@ function initializeStateMachine<
  * @param _BaseEntity - base entity class to extend from
  *
  * @example
- * import { StateMachineEntity, t } from 'typeorm-fsm';
+ * import { StateMachineEntity, t } from '@fsmoothy/typeorm';
  *
  * enum OrderState {
  *   draft = 'draft',

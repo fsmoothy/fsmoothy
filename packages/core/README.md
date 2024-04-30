@@ -6,6 +6,7 @@
 
 ## Index
 
+- [Installation](#installation)
 - [Usage](#usage)
   - [Events and States](#events-and-states)
   - [State Machine](#state-machine)
@@ -20,9 +21,14 @@
   - [Bound lifecycle methods](#bound-lifecycle-methods)
   - [Dependency injection](#dependency-injection)
   - [Error handling](#error-handling)
-- [Installation](#installation)
 - [Examples](#examples)
 - [Latest Changes](#latest-changes)
+
+## Installation
+
+```bash
+npm install @fsmoothy/core
+```
 
 ## Usage
 
@@ -40,7 +46,7 @@ stateDiagram-v2
 
 ### Events and States
 
-The library was initially designed to use `enums` for events and states. However, using string enums would provide more convenient method names. It is also possible to use `string` or `number` as event or state types, but this approach is not recommended.
+The library was initially designed to use `enums` for events and states. However, using string enums would provide more convenient method names. It is also possible to use `string` or `number` as event and state types, but using enums is recommended.
 
 ```typescript
 enum OrderItemState {
@@ -151,13 +157,13 @@ t(
 
 In such cases, we're using next options:
 
-- `from` - represents the state from which the transition is permitted
-- `event` - denotes the event that triggers the transition
-- `to` - indicates the state to which the transition leads
+- `from` - represents the state **from** which the transition is permitted
+- `event` - denotes the _event_ that triggers the transition
+- `to` - indicates the state **to** which the transition leads
 - `guard` - a function that verifies if the transition is permissible
 - `onEnter` - a function that executes when the transition is triggered
 - `onExit` - a function that executes when the transition is completed
-- `onLeave` - a function that executes when the next transition is triggered (before `onEnter`)
+- `onLeave` - a function that executes when the next transition is triggered (before `onEnter` of the next transition)
 
 ### Make transition
 
@@ -465,23 +471,25 @@ stateMachine.injectAsync('logger', async (fsm) => new Logger(fsm)); // factory f
 
 ### Error handling
 
-Library throws `StateMachineError` if transition is not available. It can be caught using `try/catch` and checked using `isStateMachineError` function.
+Library throws `StateMachineTransitionError` if transition is not available. It can be caught using `try/catch` and checked using `isStateMachineTransitionError` function.
 
 ```typescript
-import { isStateMachineError } from '@fsmoothy/core';
+import { isStateMachineTransitionError } from '@fsmoothy/core';
 
 try {
   await orderItemFSM.create();
 } catch (error) {
-  if (isStateMachineError(error)) {
+  if (isStateMachineTransitionError(error)) {
     console.log(error.message);
   }
 }
 ```
 
+If any of your errors occur in the lifecycle methods, they will be passed as they are to the catch block.
+
 ### Hydrate and dehydrate
 
-You can use `dehydrate` and `hydrate`  methods to convert fsm state to plain string and back.
+You can use `dehydrate` and `hydrate`  methods to convert FSM state to a plain object and back to a state machine instance.
 
 ```typescript
 const state = orderItemFSM.dehydrate();
@@ -490,11 +498,6 @@ const state = orderItemFSM.dehydrate();
 orderItemFSM.hydrate(state);
 ```
 
-## Installation
-
-```bash
-npm install @fsmoothy/core
-```
 
 ## Examples
 

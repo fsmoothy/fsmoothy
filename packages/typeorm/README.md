@@ -4,6 +4,7 @@
 
 ## Index
 
+- [Installation](#installation)
 - [Usage](#usage)
   - [Events and States](#events-and-states)
   - [Entity](#entity)
@@ -16,10 +17,16 @@
   - [Lifecycle](#lifecycle)
   - [Bound lifecycle methods](#bound-lifecycle-methods)
   - [Error handling](#error-handling)
-- [Installation](#installation)
+  - [State field](#state-field)
 - [Examples](#examples)
 - [Latest Changes](#latest-changes)
 - [Thanks](#thanks)
+
+## Installation
+
+```bash
+npm install typeorm @fsmoothy/typeorm
+```
 
 ## Usage
 
@@ -37,7 +44,7 @@ stateDiagram-v2
 
 ### Events and States
 
-The library was initially designed to use `enums` for events and states. However, using string enums would provide more convenient method names. It is also possible to use `string` or `number` as event or state types, but this approach is not recommended.
+The library was initially designed to use `enums` for events and states. However, using string enums would provide more convenient method names. It is also possible to use `string` or `number` as event and state types, but using enums is recommended.
 
 ```typescript
 enum OrderItemState {
@@ -66,47 +73,67 @@ interface IOrderItemContext = FSMContext<{
 To create an entity class, it must extend `StateMachineEntity` and have defined initial state and transitions. Additionally, you can combine `StateMachineEntity` with your own `BaseEntity`, which should be extended from TypeORM's base entity.
 
 ```typescript
-@Entity('order')
-class Order extends StateMachineEntity(
-  {
-    itemsStatus: state<OrderItemState, OrderItemEvent, IOrderItemContext>({
-      id: 'orderItemsStatus',
-      initial: OrderItemState.draft,
-      data: () => ({
+import { StateMachineEntity, t } from '@fsmoothy/typeorm';
+
+const OrderStateMachineEntity = StateMachineEntity({
+  status: state<OrderState, OrderEvent>({
+    id: 'orderStatus',
+    initial: OrderState.Draft,
+    transitions: [
+      t(OrderState.Draft, OrderEvent.Create, OrderState.Pending),
+      t(OrderState.Pending, OrderEvent.Pay, OrderState.Paid),
+      t(OrderState.Paid, OrderEvent.Ship, OrderState.Shipped),
+      t(OrderState.Shipped, OrderEvent.Complete, OrderState.Completed),
+    ],
+  }),
+  itemsStatus: state<
+    OrderItemState,
+    OrderItemEvent,
+    FsmContext<IOrderItemContext>
+  >({
+    id: 'orderItemsStatus',
+    initial: OrderItemState.Draft,
+    data() {
+      return {
         place: 'My warehouse',
-      }),
-      transitions: [
-        t(OrderItemState.draft, OrderItemEvent.create, OrderItemState.assembly),
-        t(
-          OrderItemState.assembly,
-          OrderItemEvent.assemble,
-          OrderItemState.warehouse,
-        ),
+      };
+    },
+    transitions: [
+      t(OrderItemState.Draft, OrderItemEvent.Create, OrderItemState.Assembly),
+      t(
+        OrderItemState.Assembly,
+        OrderItemEvent.Assemble,
+        OrderItemState.Warehouse,
+      ),
+      t(
+        OrderItemState.Warehouse,
+        OrderItemEvent.Transfer,
+        OrderItemState.Warehouse,
         {
-          from: OrderItemState.warehouse,
-          event: OrderItemEvent.transfer,
-          to: OrderItemState.warehouse,
           guard(context, place: string) {
             return context.data.place !== place;
           },
-          onExit(context:, place: string) {
+          onExit(context, place: string) {
             context.data.place = place;
           },
         },
-        t(
-          [OrderItemState.assembly, OrderItemState.warehouse],
-          OrderItemEvent.ship,
-          OrderItemState.shipping,
-        ),
-        t(
-          OrderItemState.shipping,
-          OrderItemEvent.deliver,
-          OrderItemState.delivered,
-        ),
-      ],
-    }),
-  },
-) {
+      ),
+      t(
+        [OrderItemState.Assembly, OrderItemState.Warehouse],
+        OrderItemEvent.Ship,
+        OrderItemState.Shipping,
+      ),
+      t(
+        OrderItemState.Shipping,
+        OrderItemEvent.Deliver,
+        OrderItemState.Delivered,
+      ),
+    ],
+  }),
+});
+
+@Entity('order')
+class Order extends OrderStateMachineEntity {
   @Column({
     default: 0,
   })
@@ -116,7 +143,7 @@ class Order extends StateMachineEntity(
 
 ### StateMachineEntity
 
-Let's take a look at the `StateMachineEntity` mixin. It accepts an object with the following properties:
+Let's take a look at the `StateMachineEntity` mixin. It accepts an object with DB table column name as a key and state machine configuration `state()` as a value. The configuration object has the following properties:
 
 - `id` - a unique identifier for the state machine (used for debugging purposes)
 - `initial` - the initial state of the state machine
@@ -125,7 +152,7 @@ Let's take a look at the `StateMachineEntity` mixin. It accepts an object with t
 - `transitions` - an array of transitions
 - `subscribers` - an object with subscribers array for events
 
-It also support extend your own `BaseEntity` class by passing it as a second argument.
+The `StateMachineEntity` also supports extending your own `BaseEntity` class by passing it as the second argument.
 
 ### Transitions
 
@@ -135,7 +162,7 @@ The most common way to define a transition is by using the `t` function, which r
 t(from: State | State[], event: Event, to: State, guard?: (context: Context) => boolean);
 ```
 
-We also able to pass optional `onEnter` and `onExit` functions to the transition as options:
+We are also able to pass optional `onEnter` and `onExit` functions to the transition as options:
 
 ```typescript
 t(
@@ -150,7 +177,7 @@ t(
 );
 ```
 
-In such cases, we're using next options:
+In such cases, we're using the following options:
 
 - `from` - represents the state from which the transition is permitted
 - `event` - denotes the event that triggers the transition
@@ -162,7 +189,7 @@ In such cases, we're using next options:
 
 ### Make transition
 
-To make a transition, we need to call the `transition` method of the entity or use methods with the same name as the event. State changes will persist to the database by default.
+To make a transition, we need to call the `transition` method of the entity or use methods with the same name as the event. State changes will persist in the database by default.
 
 ```typescript
 const order = new Order();
@@ -293,25 +320,25 @@ order.fsm.itemsStatus.on(function () {
 
 ### Error handling
 
-Library throws `StateMachineError` if transition is not available. It can be caught using `try/catch` and checked using `isStateMachineError` function.
+Library throws `StateMachineTransitionError` if transition is not available. It can be caught using `try/catch` and checked using `isStateMachineTransitionError` function.
 
 ```typescript
-import { isStateMachineError } from 'typeorm-fsm';
+import { isStateMachineTransitionError } from '@fsmoothy/core';
 
 try {
   await order.fsm.itemsStatus.create();
 } catch (error) {
-  if (isStateMachineError(error)) {
+  if (isStateMachineTransitionError(error)) {
     console.log(error.message);
   }
 }
 ```
 
-## Installation
+If any of your errors occur in the lifecycle methods, they will be passed as they are to the catch block.
 
-```bash
-npm install typeorm @fsmoothy/typeorm
-```
+### State field
+
+Internal representation of FSM state will be added to the entity automatically. Please, don't add it manually. However, feel free to change your own columns as you wish.
 
 ## Examples
 
