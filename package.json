@@ -43,7 +43,7 @@
     "url": "https://github.com/fsmoothy/fsmoothy/issues"
   },
   "homepage": "https://github.com/fsmoothy/fsmoothy#readme",
-  "packageManager": "npm@10.1.0",
+  "packageManager": "npm@10.5.2",
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.0",
     "@commitlint/cli": "^19.2.2",
@@ -70,7 +70,7 @@
     "prettier": "^3.2.5",
     "semantic-release": "^23.0.8",
     "tsx": "^4.7.3",
-    "turbo": "^1.13.2",
+    "turbo": "^2.0.4",
     "typedoc": "^0.25.13",
     "typedoc-plugin-extras": "^3.0.0",
     "typedoc-plugin-mermaid": "^1.10.0",
