@@ -147,13 +147,10 @@ export class _StateMachine<
    * @param transition - Transition to add.
    * @returns New state machine.
    */
-  addTransition<
-    const NewState extends AllowedNames,
-    const NewEvent extends AllowedNames,
-  >(
-    from: Array<State> | State,
+  addTransition<const NewState extends State, const NewEvent extends Event>(
+    from: ReadonlyArray<NewState> | NewState,
     event: Event,
-    to: State,
+    to: NewState,
     guardOrOptions?: Guard<Context> | TransitionOptions<Context>,
   ) {
     const transition = t(from, event, to, guardOrOptions);
@@ -258,10 +255,8 @@ export class _StateMachine<
 
     // check has from: all
     if (transitionsByState?.has(All)) {
-      for (const transition of transitionsByState.get(All) ?? []) {
-        const { guard } = transition;
-
-        const result = await (guard?.(this._context, ...arguments_) ?? true);
+      for (const t of transitionsByState.get(All) ?? []) {
+        const result = await (t.guard?.(this._context, ...arguments_) ?? true);
 
         if (result) {
           return true;
@@ -646,9 +641,7 @@ export class _StateMachine<
     const allTransitions = transitionsByState.get(All);
     if (allTransitions) {
       for (const t of allTransitions) {
-        const { guard } = t;
-
-        const result = await (guard?.(this._context, ...arguments_) ?? true);
+        const result = await (t.guard?.(this._context, ...arguments_) ?? true);
 
         if (result) {
           return t;
