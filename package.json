@@ -72,12 +72,9 @@
     "semantic-release": "^23.0.8",
     "tsx": "^4.7.3",
     "turbo": "^2.0.4",
-    "typedoc": "^0.25.13",
-    "typedoc-plugin-extras": "^3.0.0",
-    "typedoc-plugin-mermaid": "^1.10.0",
-    "typedoc-plugin-replace-text": "^3.3.0",
-    "typescript": "^5.5.2",
-    "unplugin-swc": "^1.4.5",
+    "typedoc": "^0.26.3",
+    "typescript": "^5.5.3",
+    "unplugin-swc": "1.4.3",
     "vitest": "^1.5.2",
     "zx": "^8.0.2"
   }
