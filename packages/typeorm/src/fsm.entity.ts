@@ -4,6 +4,7 @@ import {
   StateMachineParameters,
   IStateMachine,
   StateMachine,
+  Transition,
 } from '@fsmoothy/core';
 import { BaseEntity, Column, getMetadataArgsStorage } from 'typeorm';
 
@@ -84,32 +85,34 @@ function initializeStateMachine<
   parameters: IStateMachineEntityColumnParameters<State, Event, Context>,
 ) {
   const dehydratedColumnName = buildDehydratedColumnName(column);
-
-  const { saveAfterTransition = true, transitions } = parameters;
-  // @ts-expect-error - change readonly property
-  parameters.transitions = transitions?.map(function (transition) {
-    return {
-      ...transition,
-      async onExit(this: any, context: Context, ...arguments_: Array<unknown>) {
-        this[column] = transition.to;
-        this[dehydratedColumnName] = JSON.stringify(
-          this.fsm[column].dehydrate(),
-        );
-
-        await transition.onExit?.call(this, context, ...arguments_);
-
-        if (saveAfterTransition) {
-          await this.save();
-        }
-      },
-    };
-  });
-
   // @ts-expect-error - monkey patching
   const dehydrated = JSON.parse(this[dehydratedColumnName]);
   dehydrated.current = this[column];
   this.fsm[column] = new StateMachine(parameters).hydrate(dehydrated);
   this.fsm[column].bind(this);
+}
+
+function wrapOnExit(
+  transition: Transition<AllowedNames, AllowedNames, FsmContext<unknown>>,
+  column: string,
+  saveAfterTransition: boolean,
+) {
+  const dehydratedColumnName = buildDehydratedColumnName(column);
+
+  return async function onExit(
+    this: any,
+    context: any,
+    ...arguments_: Array<unknown>
+  ) {
+    this[column] = transition.to;
+    this[dehydratedColumnName] = JSON.stringify(this.fsm[column].dehydrate());
+
+    await transition.onExit?.call(this, context, ...arguments_);
+
+    if (saveAfterTransition) {
+      await this.save();
+    }
+  };
 }
 
 /**
@@ -173,7 +176,15 @@ export const StateMachineEntity = function <
       AllowedNames,
       FsmContext<unknown>
     >;
-    const { initial } = parameter;
+    const { initial, transitions, saveAfterTransition = true } = parameter;
+
+    // @ts-expect-error - change readonly property
+    parameter.transitions = transitions?.map(function (transition) {
+      return {
+        ...transition,
+        onExit: wrapOnExit(transition, column, saveAfterTransition),
+      };
+    });
 
     const afterLoadMethodName = buildAfterLoadMethodName(column);
 
