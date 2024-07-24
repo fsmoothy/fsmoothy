@@ -13,6 +13,7 @@
       "types": "./dist/index.d.ts"
     }
   },
+  "description": "Graphviz renderer for fsmoothy",
   "readme": "README.md",
   "repository": {
     "type": "git",
