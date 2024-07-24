@@ -1,5 +1,16 @@
 # @fsmoothy/graphviz
 
+## 1.2.0
+
+### Minor Changes
+
+- [`c59d69a`](https://github.com/fsmoothy/fsmoothy/commit/c59d69a6bc1ab31e2a5edc362a22fce43844f071) Thanks [@bondiano](https://github.com/bondiano)! - initialize transitions only once
+
+### Patch Changes
+
+- Updated dependencies [[`2d82e8d`](https://github.com/fsmoothy/fsmoothy/commit/2d82e8d3a6a27ccde06494823ab8c2e6baa07bb1), [`c59d69a`](https://github.com/fsmoothy/fsmoothy/commit/c59d69a6bc1ab31e2a5edc362a22fce43844f071)]:
+  - @fsmoothy/core@1.4.0
+
 ## 1.1.0
 
 ### Minor Changes
