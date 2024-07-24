@@ -1,13 +1,13 @@
-name: CI
+name: Lint/Test
 on:
-  - push
+  - pull_request
 
 jobs:
   check:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [20.x, 21.x]
+        node-version: [20.x, 21.x, 22.x]
     steps:
       - uses: actions/checkout@v3
       - name: Use Node.js ${{ matrix.node-version }}
@@ -20,10 +20,5 @@ jobs:
           CI: true
       - name: Run linter
         run: npm run lint
-      - name: Test & publish code coverage
-        uses: paambaati/codeclimate-action@v5.0.0
-        env:
-          CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
-        with:
-          coverageCommand: npm run coverage
-          debug: true
+      - name: Test
+        run: npm run test
