@@ -13,8 +13,10 @@ import {
   addEventMethods,
 } from './heplers';
 import { All } from './symbols';
-import { TransitionOptions, t } from './transition';
-import {
+import { t } from './transition';
+
+import type { TransitionOptions } from './transition';
+import type {
   AllowedNames,
   Callback,
   Transition,

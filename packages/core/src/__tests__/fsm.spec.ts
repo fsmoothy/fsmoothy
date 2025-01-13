@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/no-duplicate-string */
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -7,8 +8,9 @@ import {
   parallel,
   All,
   t,
-  FsmContext,
 } from '..';
+
+import type { FsmContext } from '..';
 
 enum State {
   idle = 'idle',
@@ -80,7 +82,6 @@ describe('StateMachine', () => {
       let handlerContext: unknown;
 
       const handler = vi.fn().mockImplementation(function (this: unknown) {
-        // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
         handlerContext = this;
       });
 
@@ -396,7 +397,6 @@ describe('StateMachine', () => {
       let handlerContext: unknown;
 
       const callback = vi.fn().mockImplementation(function (this: unknown) {
-        // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
         handlerContext = this;
       });
 
@@ -748,7 +748,6 @@ describe('StateMachine', () => {
       const nestedCallback = vi.fn().mockImplementation(function (
         this: unknown,
       ) {
-        // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
         handlerContext = this;
       });
       type States = State | NestedStates;
@@ -1076,12 +1075,10 @@ describe('StateMachine', () => {
       const subscribeCallback = vi.fn().mockImplementation(function (
         this: unknown,
       ) {
-        // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
         handlerContext = this;
       });
 
       const callback = vi.fn().mockImplementation(function (this: unknown) {
-        // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
         onExitCallbackContext = this;
       });
 
@@ -1117,12 +1114,10 @@ describe('StateMachine', () => {
       const subscribeCallback = vi.fn().mockImplementation(function (
         this: unknown,
       ) {
-        // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
         handlerContext = this;
       });
 
       const callback = vi.fn().mockImplementation(function (this: unknown) {
-        // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
         onExitCallbackContext = this;
       });
 

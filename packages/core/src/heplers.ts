@@ -1,5 +1,6 @@
 import { All } from './symbols';
-import {
+
+import type {
   AllowedNames,
   FsmContext,
   IInternalTransition,

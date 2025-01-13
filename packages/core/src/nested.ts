@@ -1,5 +1,6 @@
 import { _StateMachine } from './fsm';
-import {
+
+import type {
   AllowedNames,
   FsmContext,
   HistoryTypes,

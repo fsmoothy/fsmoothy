@@ -1,4 +1,4 @@
-import { AllowedNames } from './types';
+import type { AllowedNames } from './types';
 
 export class StateMachineTransitionError extends Error {
   constructor(

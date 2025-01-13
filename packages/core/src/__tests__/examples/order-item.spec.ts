@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { StateMachine, t, FsmContext } from '../..';
+import { StateMachine, t } from '../..';
+
+import type { FsmContext } from '../..';
 
 enum OrderItemState {
   draft = 'draft',

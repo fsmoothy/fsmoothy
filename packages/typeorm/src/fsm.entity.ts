@@ -1,12 +1,14 @@
-import {
+import { BaseEntity, Column, getMetadataArgsStorage } from 'typeorm';
+
+import { StateMachine } from '@fsmoothy/core';
+
+import type {
   AllowedNames,
   FsmContext,
   StateMachineParameters,
   IStateMachine,
-  StateMachine,
   Transition,
 } from '@fsmoothy/core';
-import { BaseEntity, Column, getMetadataArgsStorage } from 'typeorm';
 
 export interface IStateMachineEntityColumnParameters<
   State extends AllowedNames,

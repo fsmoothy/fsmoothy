@@ -1,4 +1,3 @@
-import { FsmContext } from '@fsmoothy/core';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -8,11 +7,14 @@ import {
   OneToMany,
   JoinColumn,
   ManyToOne,
-  QueryRunner,
 } from 'typeorm';
-import { describe, it, expect, afterAll, afterEach, beforeAll } from 'vitest';
+import { PGliteDriver } from 'typeorm-pglite';
+import { describe, it, expect, afterAll, beforeAll } from 'vitest';
 
 import { StateMachineEntity, state, t } from '../..';
+
+import type { FsmContext } from '@fsmoothy/core';
+import type { QueryRunner } from 'typeorm';
 
 const fakeDate = new Date('2020-01-01');
 
@@ -131,7 +133,8 @@ describe('Task Status', () => {
       entities: [Tag, Task],
       logging: ['error', 'warn'],
       synchronize: true,
-      type: 'better-sqlite3',
+      type: 'postgres',
+      driver: new PGliteDriver().driver,
     });
 
     await dataSource.initialize();
@@ -141,11 +144,6 @@ describe('Task Status', () => {
   afterAll(async () => {
     await dataSource.dropDatabase();
     await dataSource.destroy();
-  });
-
-  afterEach(async () => {
-    await dataSource.manager.clear(Tag);
-    await dataSource.manager.clear(Task);
   });
 
   it('should be able to pass user flow', async () => {

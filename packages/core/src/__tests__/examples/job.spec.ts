@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 
-import { StateMachine, FsmContext } from '../..';
+import { StateMachine } from '../..';
+
+import type { FsmContext } from '../..';
 
 enum States {
   Sleeping = 'sleeping',

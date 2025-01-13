@@ -1,4 +1,10 @@
-import { AllowedNames, Callback, Guard, Transition, FsmContext } from './types';
+import type {
+  AllowedNames,
+  Callback,
+  Guard,
+  Transition,
+  FsmContext,
+} from './types';
 
 export interface TransitionOptions<Context extends FsmContext<unknown>> {
   onExit?: Callback<Context>;

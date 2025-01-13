@@ -1,4 +1,3 @@
-import { FsmContext } from '@fsmoothy/core';
 import {
   Column,
   DataSource,
@@ -6,6 +5,7 @@ import {
   PrimaryGeneratedColumn,
   BaseEntity as TypeOrmBaseEntity,
 } from 'typeorm';
+import { PGliteDriver } from 'typeorm-pglite';
 import {
   describe,
   expect,
@@ -17,6 +17,8 @@ import {
 } from 'vitest';
 
 import { StateMachineEntity, state, t } from '../';
+
+import type { FsmContext } from '@fsmoothy/core';
 
 enum OrderState {
   Draft = 'draft',
@@ -135,7 +137,8 @@ describe('StateMachineEntity', () => {
       entities: [Order],
       logging: ['error', 'warn'],
       synchronize: true,
-      type: 'better-sqlite3',
+      type: 'postgres',
+      driver: new PGliteDriver().driver,
     });
 
     await dataSource.initialize();
@@ -189,7 +192,6 @@ describe('StateMachineEntity', () => {
       this: Order,
       _context: IOrderItemContext,
     ) {
-      // eslint-disable-next-line @typescript-eslint/no-this-alias, unicorn/no-this-assignment
       handlerContext = this;
     });
 

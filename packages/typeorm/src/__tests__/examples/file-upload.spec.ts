@@ -1,4 +1,5 @@
 import { Column, DataSource, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { PGliteDriver } from 'typeorm-pglite';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { StateMachineEntity, t, state } from '../..';
@@ -71,7 +72,8 @@ describe('File upload', () => {
       entities: [File],
       logging: ['error', 'warn'],
       synchronize: true,
-      type: 'better-sqlite3',
+      type: 'postgres',
+      driver: new PGliteDriver().driver,
     });
 
     await dataSource.initialize();
