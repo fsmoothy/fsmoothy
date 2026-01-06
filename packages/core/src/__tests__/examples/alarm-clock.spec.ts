@@ -1,21 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import type { FsmContext } from '../..';
-import { StateMachine, t } from '../..';
+import { defineEvents, defineStates, StateMachine, t } from '../..';
 
-enum ClockState {
-  Clock = 'clock',
-  Bell = 'bell',
-  Alarm = 'alarm',
-}
+const ClockState = defineStates('clock', 'bell', 'alarm');
+type ClockState = typeof ClockState.type;
 
-enum ClockEvent {
-  Tick = 'tick',
-  ClickH = 'clickH',
-  ClickM = 'clickM',
-  ClickMode = 'clickMode',
-  LongClickMode = 'longClickMode',
-  ActivateAlarm = 'activateAlarm',
-}
+const ClockEvent = defineEvents(
+  'tick',
+  'clickH',
+  'clickM',
+  'clickMode',
+  'longClickMode',
+  'activateAlarm',
+);
+type ClockEvent = typeof ClockEvent.type;
 
 type ClockContext = FsmContext<{
   time: {
@@ -44,7 +42,7 @@ const addHours: ClockAddTimeCallback = (type) => (context) => {
 class AlarmClock extends StateMachine<ClockState, ClockEvent, ClockContext> {
   constructor() {
     super({
-      initial: ClockState.Clock,
+      initial: ClockState.clock,
       data: () => ({
         time: {
           minutes: 0,
@@ -57,37 +55,37 @@ class AlarmClock extends StateMachine<ClockState, ClockEvent, ClockContext> {
         isAlarmOn: false,
       }),
       transitions: [
-        t(ClockState.Clock, ClockEvent.ClickMode, ClockState.Alarm),
-        t(ClockState.Alarm, ClockEvent.ClickMode, ClockState.Clock),
-        t(ClockState.Bell, ClockEvent.ClickH, ClockState.Bell),
-        t(ClockState.Bell, ClockEvent.ClickM, ClockState.Bell),
-        t(ClockState.Bell, ClockEvent.ClickMode, ClockState.Bell),
-        t(ClockState.Bell, ClockEvent.Tick, ClockState.Bell),
-        t(ClockState.Bell, ClockEvent.LongClickMode, ClockState.Clock),
-        t(ClockState.Clock, ClockEvent.Tick, ClockState.Clock),
-        t(ClockState.Alarm, ClockEvent.Tick, ClockState.Alarm),
+        t(ClockState.clock, ClockEvent.clickMode, ClockState.alarm),
+        t(ClockState.alarm, ClockEvent.clickMode, ClockState.clock),
+        t(ClockState.bell, ClockEvent.clickH, ClockState.bell),
+        t(ClockState.bell, ClockEvent.clickM, ClockState.bell),
+        t(ClockState.bell, ClockEvent.clickMode, ClockState.bell),
+        t(ClockState.bell, ClockEvent.tick, ClockState.bell),
+        t(ClockState.bell, ClockEvent.longClickMode, ClockState.clock),
+        t(ClockState.clock, ClockEvent.tick, ClockState.clock),
+        t(ClockState.alarm, ClockEvent.tick, ClockState.alarm),
         t(
-          [ClockState.Clock, ClockState.Alarm],
-          ClockEvent.ActivateAlarm,
-          ClockState.Bell,
+          [ClockState.clock, ClockState.alarm],
+          ClockEvent.activateAlarm,
+          ClockState.bell,
           (context) =>
             context.data.isAlarmOn &&
             context.data.time.hours === context.data.alarm.hours &&
             context.data.time.minutes === context.data.alarm.minutes,
         ),
-        t(ClockState.Clock, ClockEvent.ClickH, ClockState.Clock, {
+        t(ClockState.clock, ClockEvent.clickH, ClockState.clock, {
           onEnter: addHours('time'),
         }),
-        t(ClockState.Clock, ClockEvent.ClickM, ClockState.Clock, {
+        t(ClockState.clock, ClockEvent.clickM, ClockState.clock, {
           onEnter: addMinutes('time'),
         }),
-        t(ClockState.Alarm, ClockEvent.ClickH, ClockState.Alarm, {
+        t(ClockState.alarm, ClockEvent.clickH, ClockState.alarm, {
           onEnter: addHours('alarm'),
         }),
-        t(ClockState.Alarm, ClockEvent.ClickM, ClockState.Alarm, {
+        t(ClockState.alarm, ClockEvent.clickM, ClockState.alarm, {
           onEnter: addMinutes('alarm'),
         }),
-        t(ClockState.Clock, ClockEvent.LongClickMode, ClockState.Clock, {
+        t(ClockState.clock, ClockEvent.longClickMode, ClockState.clock, {
           onEnter(context) {
             context.data.isAlarmOn = !context.data.isAlarmOn;
           },
@@ -95,7 +93,7 @@ class AlarmClock extends StateMachine<ClockState, ClockEvent, ClockContext> {
       ],
     });
 
-    this.on(ClockEvent.Tick, this.onTick);
+    this.on(ClockEvent.tick, this.onTick);
   }
 
   async onTick(context: ClockContext, minutes = 1) {
@@ -124,31 +122,31 @@ describe('Alarm clock', () => {
   it('should change state when click to mode', async () => {
     const clock = new AlarmClock();
     expect(clock.data.isAlarmOn).toBe(false);
-    expect(clock.current).toBe(ClockState.Clock);
+    expect(clock.current).toBe(ClockState.clock);
 
     await clock.clickMode();
     expect(clock.data.isAlarmOn).toBe(false);
-    expect(clock.current).toBe(ClockState.Alarm);
+    expect(clock.current).toBe(ClockState.alarm);
 
     await clock.clickMode();
     expect(clock.data.isAlarmOn).toBe(false);
-    expect(clock.current).toBe(ClockState.Clock);
+    expect(clock.current).toBe(ClockState.clock);
 
     await clock.longClickMode();
     expect(clock.data.isAlarmOn).toBe(true);
-    expect(clock.current).toBe(ClockState.Clock);
+    expect(clock.current).toBe(ClockState.clock);
 
     await clock.clickMode();
     expect(clock.data.isAlarmOn).toBe(true);
-    expect(clock.current).toBe(ClockState.Alarm);
+    expect(clock.current).toBe(ClockState.alarm);
 
     await clock.clickMode();
     expect(clock.data.isAlarmOn).toBe(true);
-    expect(clock.current).toBe(ClockState.Clock);
+    expect(clock.current).toBe(ClockState.clock);
 
     await clock.longClickMode();
     expect(clock.data.isAlarmOn).toBe(false);
-    expect(clock.current).toBe(ClockState.Clock);
+    expect(clock.current).toBe(ClockState.clock);
   });
 
   it('should change hours and minutes', async () => {
@@ -199,12 +197,12 @@ describe('Alarm clock', () => {
     await clock.tick(18 * 60);
 
     expect(await clock.canActivateAlarm()).toBe(false);
-    expect(clock.current).toBe(ClockState.Clock);
+    expect(clock.current).toBe(ClockState.clock);
     await clock.clickM();
     await clock.clickH();
 
     await clock.tick();
-    expect(clock.current).toBe(ClockState.Clock);
+    expect(clock.current).toBe(ClockState.clock);
   });
 
   it('should start bell if alarm on', async () => {
@@ -214,7 +212,7 @@ describe('Alarm clock', () => {
 
     await clock.tick(18 * 60);
 
-    expect(clock.current).toBe(ClockState.Bell);
+    expect(clock.current).toBe(ClockState.bell);
 
     await clock.clickM();
     await clock.clickH();
@@ -222,21 +220,21 @@ describe('Alarm clock', () => {
 
     await clock.longClickMode();
 
-    expect(clock.current).toBe(ClockState.Clock);
+    expect(clock.current).toBe(ClockState.clock);
   });
 
   it('should start bell if state is Alarm', async () => {
     const clock = new AlarmClock();
     await clock.longClickMode();
     await clock.clickMode();
-    expect(clock.current).toBe(ClockState.Alarm);
+    expect(clock.current).toBe(ClockState.alarm);
 
     await clock.tick(18 * 60);
 
-    expect(clock.current).toBe(ClockState.Bell);
+    expect(clock.current).toBe(ClockState.bell);
 
     await clock.clickMode();
-    expect(clock.current).toBe(ClockState.Bell);
+    expect(clock.current).toBe(ClockState.bell);
   });
 
   it('should increment minutes after Alarm', async () => {
@@ -245,12 +243,12 @@ describe('Alarm clock', () => {
 
     await clock.tick(18 * 60);
 
-    expect(clock.current).toBe(ClockState.Bell);
+    expect(clock.current).toBe(ClockState.bell);
 
     await clock.tick();
     await clock.longClickMode();
 
-    expect(clock.current).toBe(ClockState.Clock);
+    expect(clock.current).toBe(ClockState.clock);
     expect(clock.data.time.minutes).toBe(1);
   });
 });

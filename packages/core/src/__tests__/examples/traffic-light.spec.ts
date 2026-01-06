@@ -1,37 +1,30 @@
 import { describe, expect, it } from 'vitest';
 
-import { nested, StateMachine, t } from '../..';
+import { defineEvents, defineStates, nested, StateMachine, t } from '../..';
 
-enum State {
-  green = 'green',
-  yellow = 'yellow',
-  red = 'red',
-}
+const State = defineStates('green', 'yellow', 'red');
+type State = typeof State.type;
 
-enum Event {
-  Tick = 'tick',
-}
+const Event = defineEvents('tick');
+type Event = typeof Event.type;
 
-enum CrosswalkStates {
-  walk = 'walk',
-  dontWalk = 'dontWalk',
-}
+const CrosswalkState = defineStates('walk', 'dontWalk');
+type CrosswalkState = typeof CrosswalkState.type;
 
-enum CrosswalkEvents {
-  toggle = 'toggle',
-}
+const CrosswalkEvent = defineEvents('toggle');
+type CrosswalkEvent = typeof CrosswalkEvent.type;
 
 class TrafficLight extends StateMachine<
-  State | CrosswalkStates,
-  Event | CrosswalkEvents
+  State | CrosswalkState,
+  Event | CrosswalkEvent
 > {
   constructor() {
     super({
       initial: State.green,
       transitions: [
-        t(State.green, Event.Tick, State.yellow),
-        t(State.yellow, Event.Tick, State.red),
-        t(State.red, Event.Tick, State.green),
+        t(State.green, Event.tick, State.yellow),
+        t(State.yellow, Event.tick, State.red),
+        t(State.red, Event.tick, State.green),
       ],
     });
 
@@ -39,17 +32,17 @@ class TrafficLight extends StateMachine<
       State.red,
       nested({
         id: 'crosswalk',
-        initial: CrosswalkStates.dontWalk,
+        initial: CrosswalkState.dontWalk,
         transitions: [
           t(
-            CrosswalkStates.dontWalk,
-            CrosswalkEvents.toggle,
-            CrosswalkStates.walk,
+            CrosswalkState.dontWalk,
+            CrosswalkEvent.toggle,
+            CrosswalkState.walk,
           ),
           t(
-            CrosswalkStates.walk,
-            CrosswalkEvents.toggle,
-            CrosswalkStates.dontWalk,
+            CrosswalkState.walk,
+            CrosswalkEvent.toggle,
+            CrosswalkState.dontWalk,
           ),
         ],
         history: 'none',

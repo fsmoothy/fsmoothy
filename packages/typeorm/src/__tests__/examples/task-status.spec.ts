@@ -1,4 +1,4 @@
-import type { FsmContext } from '@fsmoothy/core';
+import { defineEvents, defineStates, type FsmContext } from '@fsmoothy/core';
 import type { QueryRunner } from 'typeorm';
 import {
   BaseEntity,
@@ -16,16 +16,11 @@ import { StateMachineEntity, state, t } from '../..';
 
 const fakeDate = new Date('2020-01-01');
 
-enum TaskState {
-  Inactive = 'inactive',
-  Active = 'active',
-  Completed = 'completed',
-}
+const TaskState = defineStates('inactive', 'active', 'completed');
+type TaskState = typeof TaskState.type;
 
-enum TaskEvent {
-  Activate = 'activate',
-  Complete = 'complete',
-}
+const TaskEvent = defineEvents('activate', 'complete');
+type TaskEvent = typeof TaskEvent.type;
 
 interface ITask {
   id: number;
@@ -44,9 +39,9 @@ interface ITaskContext extends FsmContext<never> {
 }
 
 const activate = t<TaskState, TaskEvent, ITaskContext>(
-  TaskState.Inactive,
-  TaskEvent.Activate,
-  TaskState.Active,
+  TaskState.inactive,
+  TaskEvent.activate,
+  TaskState.active,
   {
     async onEnter(this: ITask, context, tags: Array<ITag>) {
       this.tags = await Promise.all(
@@ -63,9 +58,9 @@ const activate = t<TaskState, TaskEvent, ITaskContext>(
 );
 
 const complete = t<TaskState, TaskEvent, ITaskContext>(
-  TaskState.Active,
-  TaskEvent.Complete,
-  TaskState.Completed,
+  TaskState.active,
+  TaskEvent.complete,
+  TaskState.completed,
   {
     onEnter(this: ITask) {
       this.completedAt = fakeDate;
@@ -85,7 +80,7 @@ const complete = t<TaskState, TaskEvent, ITaskContext>(
 class Task
   extends StateMachineEntity({
     status: state<TaskState, TaskEvent, ITaskContext>({
-      initial: TaskState.Inactive,
+      initial: TaskState.inactive,
       saveAfterTransition: false,
       transitions: [activate, complete],
     }),
@@ -169,7 +164,7 @@ describe('Task Status', () => {
       },
     ]);
 
-    expect(task.status).toBe(TaskState.Active);
+    expect(task.status).toBe(TaskState.active);
 
     await task.fsm.status.complete();
     await queryRunner.commitTransaction();
@@ -177,7 +172,7 @@ describe('Task Status', () => {
     const taskFromDatabase = await dataSource.manager.findOneByOrFail(Task, {
       id: task.id,
     });
-    expect(taskFromDatabase.status).toBe(TaskState.Completed);
+    expect(taskFromDatabase.status).toBe(TaskState.completed);
     expect(taskFromDatabase.tags).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -199,7 +194,7 @@ describe('Task Status', () => {
     const task2 = await dataSource.manager
       .create(Task, {
         title: 'My Task 2',
-        status: TaskState.Active,
+        status: TaskState.active,
         tags: [],
       })
       .save();
@@ -207,9 +202,9 @@ describe('Task Status', () => {
     const tasksToUpdate = [
       {
         task: task1,
-        event: TaskEvent.Activate,
+        event: TaskEvent.activate,
       },
-      { task: task2, event: TaskEvent.Complete },
+      { task: task2, event: TaskEvent.complete },
     ];
 
     const queryRunner = dataSource.createQueryRunner();
@@ -236,12 +231,12 @@ describe('Task Status', () => {
       id: task1.id,
     });
 
-    expect(updatedTask1.status).toBe(TaskState.Active);
+    expect(updatedTask1.status).toBe(TaskState.active);
 
     const updatedTask2 = await dataSource.manager.findOneByOrFail(Task, {
       id: task2.id,
     });
 
-    expect(updatedTask2.status).toBe(TaskState.Completed);
+    expect(updatedTask2.status).toBe(TaskState.completed);
   });
 });

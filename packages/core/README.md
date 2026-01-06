@@ -46,7 +46,71 @@ stateDiagram-v2
 
 ### Events and States
 
-The library was initially designed to use `enums` for events and states. However, using string enums would provide more convenient method names. It is also possible to use `string` or `number` as event and state types, but using enums is recommended.
+There are several ways to define states and events. We recommend using `defineStates`/`defineEvents` helpers for the best developer experience.
+
+#### Option 1: `defineStates`/`defineEvents` helpers (recommended)
+
+```typescript
+import { defineStates, defineEvents, FsmContext } from '@fsmoothy/core';
+
+const OrderItemState = defineStates('draft', 'assembly', 'warehouse', 'shipping', 'delivered');
+type OrderItemState = typeof OrderItemState.type;
+
+const OrderItemEvent = defineEvents('create', 'assemble', 'transfer', 'ship', 'deliver');
+type OrderItemEvent = typeof OrderItemEvent.type;
+
+type OrderItemContext = FsmContext<{
+  place: string;
+}>
+```
+
+#### Option 2: `as const` objects
+
+```typescript
+const OrderItemState = {
+  draft: 'draft',
+  assembly: 'assembly',
+  warehouse: 'warehouse',
+  shipping: 'shipping',
+  delivered: 'delivered',
+} as const;
+type OrderItemState = (typeof OrderItemState)[keyof typeof OrderItemState];
+
+const OrderItemEvent = {
+  create: 'create',
+  assemble: 'assemble',
+  transfer: 'transfer',
+  ship: 'ship',
+  deliver: 'deliver',
+} as const;
+type OrderItemEvent = (typeof OrderItemEvent)[keyof typeof OrderItemEvent];
+
+type OrderItemContext = FsmContext<{
+  place: string;
+}>
+```
+
+#### Option 3: Union types (minimalist)
+
+For simple cases, you can use plain union types:
+
+```typescript
+type OrderItemState = 'draft' | 'assembly' | 'warehouse' | 'shipping' | 'delivered';
+type OrderItemEvent = 'create' | 'assemble' | 'transfer' | 'ship' | 'deliver';
+
+// Usage with string literals
+const fsm = new StateMachine<OrderItemState, OrderItemEvent>({
+  initial: 'draft',
+  transitions: [
+    t('draft', 'create', 'assembly'),
+    // ...
+  ],
+});
+```
+
+#### Option 4: Enums (legacy)
+
+While still supported, enums are considered less idiomatic in modern TypeScript:
 
 ```typescript
 enum OrderItemState {
@@ -64,10 +128,6 @@ enum OrderItemEvent {
   ship = 'ship',
   deliver = 'deliver',
 }
-
-type OrderItemContext = FsmContext<{
-  place: string;
-}>
 ```
 
 ### State Machine
@@ -75,7 +135,18 @@ type OrderItemContext = FsmContext<{
 To create state machine, we need to instantiate `StateMachine` class and pass the initial state and the state transition table to the constructor.
 
 ```typescript
-import { StateMachine, t, FsmContext } from '@fsmoothy/core';
+import { StateMachine, t, FsmContext, defineStates, defineEvents } from '@fsmoothy/core';
+
+// Define states and events using helpers
+const OrderItemState = defineStates('draft', 'assembly', 'warehouse', 'shipping', 'delivered');
+type OrderItemState = typeof OrderItemState.type;
+
+const OrderItemEvent = defineEvents('create', 'assemble', 'transfer', 'ship', 'deliver');
+type OrderItemEvent = typeof OrderItemEvent.type;
+
+type OrderItemContext = FsmContext<{
+  place: string;
+}>;
 
 const orderItemFSM = new StateMachine<
   OrderItemState,
@@ -183,6 +254,12 @@ We're passing the `place` argument to the `transfer` method. It will be passed t
 We can use the `guard` function to make a transition conditional.
 
 ```typescript
+const State = defineStates('idle', 'pending', 'resolved');
+type State = typeof State.type;
+
+const Event = defineEvents('fetch', 'reset');
+type Event = typeof Event.type;
+
 const stateMachine = new StateMachine<State, Event, FsmContext<{ foo: string }>>({
   initial: State.idle,
   data: () => ({ foo: 'bar' }),
@@ -342,28 +419,21 @@ Subscriber will be called on all transitions after subscribers with event name.
 A crosswalk light is an example of a nested state machine. It displays a stop signal ✋ when the stoplight is either **Yellow** or **Green**., and switches to a walk signal 🚶‍♀️ when the stoplight turns **Red**. The crosswalk light operates as a nested state machine within the parent stoplight system.
 
 ```typescript
-enum NestedStates {
-  walk = 'walk',
-  dontWalk = 'dontWalk',
-}
+const NestedState = defineStates('walk', 'dontWalk');
+type NestedState = typeof NestedState.type;
 
-enum NestedEvents {
-  toggle = 'toggle',
-}
+const NestedEvent = defineEvents('toggle');
+type NestedEvent = typeof NestedEvent.type;
 
-enum State {
-  green = 'green',
-  yellow = 'yellow',
-  red = 'red',
-}
+const State = defineStates('green', 'yellow', 'red');
+type State = typeof State.type;
 
-enum Event {
-  next = 'next',
-}
+const Event = defineEvents('next');
+type Event = typeof Event.type;
 
 const fsm = new StateMachine<
-  State | NestedStates,
-  Event | NestedEvents,
+  State | NestedState,
+  Event | NestedEvent,
   never,
 >({
   id: 'stoplight-fsm',
@@ -376,9 +446,9 @@ const fsm = new StateMachine<
   states: () => ({
     [State.red]: nested({
       id: 'walk-fsm',
-      initial: NestedStates.dontWalk,
+      initial: NestedState.dontWalk,
       transitions: [
-        t(NestedStates.dontWalk, NestedEvents.toggle, NestedStates.walk),
+        t(NestedState.dontWalk, NestedEvent.toggle, NestedState.walk),
       ],
     }),
   }),
@@ -386,9 +456,9 @@ const fsm = new StateMachine<
 
 await fsm.next();
 await fsm.next(); // fsm.current === State.red
-await fsm.toggle(); // fsm.current === NestedStates.walk
+await fsm.toggle(); // fsm.current === NestedState.walk
 await fsm.next(); // fsm.current === State.green
-fsm.is(NestedStates.walk); // false
+fsm.is(NestedState.walk); // false
 ```
 
 `states` property is a fabric function that returns an object with nested state machines. It's called only once on initialization.
@@ -428,8 +498,14 @@ await orderItemFSM.create();
 You can pass dependencies to the fsm using the `inject` property.
 
 ```typescript
+const State = defineStates('idle', 'pending', 'resolved');
+type State = typeof State.type;
+
+const Event = defineEvents('fetch', 'reset');
+type Event = typeof Event.type;
+
 type MyContext = FsmContext<{
-  place: string;
+  foo: string;
 }> & {
   logger: Logger;
 };
@@ -489,7 +565,6 @@ const state = orderItemFSM.dehydrate();
 
 orderItemFSM.hydrate(state);
 ```
-
 
 ## Examples
 

@@ -1,4 +1,3 @@
-/* eslint-disable sonarjs/no-duplicate-string */
 import { describe, expect, it, vi } from 'vitest';
 import type { FsmContext } from '..';
 import {
@@ -10,27 +9,17 @@ import {
   t,
 } from '..';
 
-enum State {
-  idle = 'idle',
-  pending = 'pending',
-  resolved = 'resolved',
-  rejected = 'rejected',
-}
-
-enum Event {
-  fetch = 'fetch',
-  resolve = 'resolve',
-  reject = 'reject',
-  reset = 'reset',
-}
+// Using union types instead of enum (minimalist approach)
+type State = 'idle' | 'pending' | 'resolved' | 'rejected';
+type Event = 'fetch' | 'resolve' | 'reject' | 'reset';
 
 const createFetchStateMachine = () => {
-  return new StateMachine({
+  return new StateMachine<State, Event>({
     id: 'fetch fsm',
-    initial: State.idle,
+    initial: 'idle',
     transitions: [
-      t(State.idle, Event.fetch, State.pending),
-      t(State.pending, Event.resolve, State.idle),
+      t('idle', 'fetch', 'pending'),
+      t('pending', 'resolve', 'idle'),
     ],
   });
 };
@@ -39,28 +28,32 @@ describe('StateMachine', () => {
   it('should set initial as current on initialize', () => {
     const stateMachine = createFetchStateMachine();
 
-    expect(stateMachine.current).toBe(State.idle);
+    expect(stateMachine.current).toBe('idle');
   });
 
   it('should be possible to pass array of from', () => {
-    const stateMachine = new StateMachine({
-      initial: State.pending,
+    const stateMachine = new StateMachine<State, Event>({
+      initial: 'pending',
       transitions: [
-        t([State.idle, State.pending], Event.fetch, State.pending),
-        t(State.pending, Event.resolve, State.idle),
+        t(['idle', 'pending'], 'fetch', 'pending'),
+        t('pending', 'resolve', 'idle'),
       ],
     });
 
-    expect(stateMachine.current).toBe(State.pending);
+    expect(stateMachine.current).toBe('pending');
   });
 
   it('should be possible to define async initialization for context', async () => {
-    const stateMachine = new StateMachine({
-      initial: State.idle,
+    const stateMachine = new StateMachine<
+      State,
+      Event,
+      FsmContext<{ foo: string }>
+    >({
+      initial: 'idle',
       data: () => Promise.resolve({ foo: 'bar' }),
       transitions: [
-        t(State.idle, Event.fetch, State.pending),
-        t(State.pending, Event.resolve, State.idle),
+        t('idle', 'fetch', 'pending'),
+        t('pending', 'resolve', 'idle'),
       ],
     });
 
@@ -72,8 +65,8 @@ describe('StateMachine', () => {
     it('should change current state', async () => {
       const stateMachine = createFetchStateMachine();
 
-      await stateMachine.transition(Event.fetch);
-      expect(stateMachine.current).toBe(State.pending);
+      await stateMachine.transition('fetch');
+      expect(stateMachine.current).toBe('pending');
     });
 
     it('should call onEnter, onExit and onLeave with context, arguments and bound state machine', async () => {
@@ -83,23 +76,27 @@ describe('StateMachine', () => {
         handlerContext = this;
       });
 
-      const stateMachine = new StateMachine({
-        initial: State.idle,
+      const stateMachine = new StateMachine<
+        State,
+        Event,
+        FsmContext<{ foo: string }>
+      >({
+        initial: 'idle',
         data: () => ({ foo: 'bar' }),
         transitions: [
           {
-            from: State.idle,
-            event: Event.fetch,
-            to: State.pending,
+            from: 'idle',
+            event: 'fetch',
+            to: 'pending',
             onEnter: handler,
             onExit: handler,
             onLeave: handler,
           },
-          t(State.pending, Event.resolve, State.idle),
+          t('pending', 'resolve', 'idle'),
         ],
       });
 
-      await stateMachine.transition(Event.fetch, 'test');
+      await stateMachine.transition('fetch', 'test');
       expect(handler).toHaveBeenCalledTimes(2);
       expect(handler).toHaveBeenCalledWith(
         expect.objectContaining({ data: { foo: 'bar' } }),
@@ -116,7 +113,7 @@ describe('StateMachine', () => {
       const stateMachine = createFetchStateMachine();
 
       await stateMachine.fetch();
-      expect(stateMachine.current).toBe(State.pending);
+      expect(stateMachine.current).toBe('pending');
     });
 
     it('should be able to add transition after initialization', async () => {
@@ -127,18 +124,18 @@ describe('StateMachine', () => {
         Event,
         FsmContext<{ n: number }>
       >({
-        initial: State.idle,
+        initial: 'idle',
         data: () => ({ n: 1 }),
         transitions: [
-          t(State.idle, Event.fetch, State.pending, {
+          t('idle', 'fetch', 'pending', {
             onExit(context) {
               context.data.n += 1;
             },
           }),
           {
-            from: State.pending,
-            event: Event.resolve,
-            to: State.resolved,
+            from: 'pending',
+            event: 'resolve',
+            to: 'resolved',
             guard: () => {
               return true;
             },
@@ -147,19 +144,15 @@ describe('StateMachine', () => {
             },
           },
         ],
-      }).on(Event.resolve, callback);
+      }).on('resolve', callback);
 
       await stateMachine.fetch();
 
       const _stateMachine = stateMachine
-        .addTransition(State.pending, Event.reject, State.rejected)
-        .addTransition(
-          [State.resolved, State.rejected],
-          Event.reset,
-          State.idle,
-        )
+        .addTransition('pending', 'reject', 'rejected')
+        .addTransition(['resolved', 'rejected'], 'reset', 'idle')
         // try to add transition with the same event - show warning
-        .addTransition(State.pending, Event.reject, State.rejected);
+        .addTransition('pending', 'reject', 'rejected');
 
       await _stateMachine.resolve();
       expect(_stateMachine.isResolved()).toBe(true);
@@ -177,7 +170,7 @@ describe('StateMachine', () => {
     it('should be able to remove transition', async () => {
       const stateMachine = createFetchStateMachine();
 
-      stateMachine.removeTransition(State.idle, Event.fetch, State.pending);
+      stateMachine.removeTransition('idle', 'fetch', 'pending');
 
       await expect(stateMachine.fetch()).rejects.toThrow(
         'Event fetch is not allowed in state idle of fetch fsm',
@@ -187,22 +180,22 @@ describe('StateMachine', () => {
     it('should throw if transition is not possible', async () => {
       const stateMachine = createFetchStateMachine();
 
-      await expect(stateMachine.transition(Event.resolve)).rejects.toThrow(
+      await expect(stateMachine.transition('resolve')).rejects.toThrow(
         'Event resolve is not allowed in state idle of fetch fsm',
       );
     });
 
     it("should throw if transition don't pass guard", async () => {
-      const stateMachine = new StateMachine({
+      const stateMachine = new StateMachine<State, Event>({
         id: 'guard fsm',
-        initial: State.idle,
+        initial: 'idle',
         transitions: [
-          t(State.idle, Event.fetch, State.pending, () => false),
-          t(State.pending, Event.resolve, State.idle),
+          t('idle', 'fetch', 'pending', () => false),
+          t('pending', 'resolve', 'idle'),
         ],
       });
 
-      await expect(stateMachine.transition(Event.fetch)).rejects.toThrow(
+      await expect(stateMachine.transition('fetch')).rejects.toThrow(
         'Event fetch is not allowed in state idle of guard fsm',
       );
     });
@@ -222,12 +215,12 @@ describe('StateMachine', () => {
 
     it('should be able to make transition from All states', async () => {
       const stateMachine = new StateMachine<State, Event>({
-        initial: State.idle,
+        initial: 'idle',
         transitions: [
-          t(All, Event.reset, State.idle),
-          t(State.idle, Event.fetch, State.pending),
-          t(State.pending, Event.resolve, State.resolved),
-          t(State.pending, Event.reject, State.rejected),
+          t(All, 'reset', 'idle'),
+          t('idle', 'fetch', 'pending'),
+          t('pending', 'resolve', 'resolved'),
+          t('pending', 'reject', 'rejected'),
         ],
       });
 
@@ -252,22 +245,22 @@ describe('StateMachine', () => {
         Event,
         FsmContext<{ foo: string }>
       >({
-        initial: State.idle,
+        initial: 'idle',
         data: () => ({ foo: 'bar' }),
         transitions: [
           t(
-            State.idle,
-            Event.fetch,
-            State.pending,
+            'idle',
+            'fetch',
+            'pending',
             (context) => context.data.foo === 'bar',
           ),
           t(
-            State.idle,
-            Event.fetch,
-            State.resolved,
+            'idle',
+            'fetch',
+            'resolved',
             (context) => context.data.foo === 'foo',
           ),
-          t(All, Event.reset, State.idle),
+          t(All, 'reset', 'idle'),
         ],
       });
 
@@ -285,24 +278,22 @@ describe('StateMachine', () => {
     it('should return true if transition is possible', async () => {
       const stateMachine = createFetchStateMachine();
 
-      expect(await stateMachine.tryTransition(Event.fetch)).toBe(true);
+      expect(await stateMachine.tryTransition('fetch')).toBe(true);
     });
 
     it('should return false if transition is not possible', async () => {
       const stateMachine = createFetchStateMachine();
 
-      expect(await stateMachine.tryTransition(Event.resolve)).toBe(false);
+      expect(await stateMachine.tryTransition('resolve')).toBe(false);
     });
 
     it('should throw error if error occurs during transition', async () => {
       const stateMachine = createFetchStateMachine();
-      stateMachine.on(Event.fetch, () => {
+      stateMachine.on('fetch', () => {
         throw new Error('test');
       });
 
-      await expect(stateMachine.tryTransition(Event.fetch)).rejects.toThrow(
-        'test',
-      );
+      await expect(stateMachine.tryTransition('fetch')).rejects.toThrow('test');
     });
   });
 
@@ -314,11 +305,11 @@ describe('StateMachine', () => {
     });
 
     it('should respect guards', async () => {
-      const stateMachine = new StateMachine({
-        initial: State.idle,
+      const stateMachine = new StateMachine<State, Event>({
+        initial: 'idle',
         transitions: [
-          t(State.idle, Event.fetch, State.pending, () => false),
-          t(State.pending, Event.resolve, State.idle),
+          t('idle', 'fetch', 'pending', () => false),
+          t('pending', 'resolve', 'idle'),
         ],
       });
 
@@ -330,7 +321,7 @@ describe('StateMachine', () => {
     it('should return true if current state is equal to passed', async () => {
       const stateMachine = createFetchStateMachine();
 
-      expect(stateMachine.is(State.idle)).toBe(true);
+      expect(stateMachine.is('idle')).toBe(true);
     });
 
     it('should be able to check state by state name', async () => {
@@ -347,25 +338,25 @@ describe('StateMachine', () => {
 
       const handler = vi.fn();
 
-      stateMachine.on(Event.fetch, handler);
+      stateMachine.on('fetch', handler);
 
-      await stateMachine.transition(Event.fetch);
+      await stateMachine.transition('fetch');
 
       expect(handler).toHaveBeenCalledTimes(1);
     });
 
     it('should be able to unsubscribe from transition event', async () => {
-      const stateMachine = new StateMachine({
-        initial: State.idle,
-        transitions: [t(State.idle, Event.fetch, State.pending)],
+      const stateMachine = new StateMachine<State, Event>({
+        initial: 'idle',
+        transitions: [t('idle', 'fetch', 'pending')],
       });
 
       const handler = vi.fn();
 
-      stateMachine.on(Event.fetch, handler);
-      stateMachine.off(Event.fetch, handler);
+      stateMachine.on('fetch', handler);
+      stateMachine.off('fetch', handler);
 
-      await stateMachine.transition(Event.fetch);
+      await stateMachine.transition('fetch');
       expect(handler).toHaveBeenCalledTimes(0);
     });
 
@@ -373,17 +364,17 @@ describe('StateMachine', () => {
       const stateMachine = createFetchStateMachine();
       const callback = vi.fn();
 
-      stateMachine.off(Event.fetch, callback);
+      stateMachine.off('fetch', callback);
     });
 
     it('should attach subscriber on init', async () => {
       const callback = vi.fn();
 
-      const stateMachine = new StateMachine({
-        initial: State.idle,
-        transitions: [t(State.idle, Event.fetch, State.pending)],
+      const stateMachine = new StateMachine<State, Event>({
+        initial: 'idle',
+        transitions: [t('idle', 'fetch', 'pending')],
         subscribers: {
-          [Event.fetch]: [callback],
+          fetch: [callback],
         },
       });
 
@@ -398,12 +389,16 @@ describe('StateMachine', () => {
         handlerContext = this;
       });
 
-      const stateMachine = new StateMachine({
-        initial: State.idle,
+      const stateMachine = new StateMachine<
+        State,
+        Event,
+        FsmContext<{ foo: string }>
+      >({
+        initial: 'idle',
         data: () => ({ foo: 'bar' }),
-        transitions: [t(State.idle, Event.fetch, State.pending)],
+        transitions: [t('idle', 'fetch', 'pending')],
         subscribers: {
-          [Event.fetch]: [callback],
+          fetch: [callback],
         },
       });
 
@@ -417,9 +412,9 @@ describe('StateMachine', () => {
       const callback = vi.fn();
       const callback2 = vi.fn();
 
-      const stateMachine = new StateMachine({
-        initial: State.idle,
-        transitions: [t(State.idle, Event.fetch, State.idle)],
+      const stateMachine = new StateMachine<State, Event>({
+        initial: 'idle',
+        transitions: [t('idle', 'fetch', 'idle')],
         subscribers: {
           [All]: [callback],
         },
@@ -442,11 +437,11 @@ describe('StateMachine', () => {
     });
 
     it('should throw if error is thrown in subscriber', async () => {
-      const stateMachine = new StateMachine({
-        initial: State.idle,
-        transitions: [t(State.idle, Event.fetch, State.idle)],
+      const stateMachine = new StateMachine<State, Event>({
+        initial: 'idle',
+        transitions: [t('idle', 'fetch', 'idle')],
         subscribers: {
-          [Event.fetch]: [
+          fetch: [
             () => {
               throw new Error('test');
             },
@@ -472,14 +467,14 @@ describe('StateMachine', () => {
           asyncService: typeof asyncService;
         }
       >({
-        initial: State.idle,
+        initial: 'idle',
         data: () => ({ foo: 'bar' }),
-        transitions: [t(State.idle, Event.fetch, State.pending)],
+        transitions: [t('idle', 'fetch', 'pending')],
       })
         .inject('service', service)
         .injectAsync('asyncService', async () => asyncService);
 
-      stateMachine.on(Event.fetch, callback);
+      stateMachine.on('fetch', callback);
 
       await stateMachine.fetch();
       expect(callback).toHaveBeenCalledTimes(1);
@@ -503,16 +498,16 @@ describe('StateMachine', () => {
           asyncService: typeof asyncService;
         }
       >({
-        initial: State.idle,
+        initial: 'idle',
         data: () => ({ foo: 'bar' }),
-        transitions: [t(State.idle, Event.fetch, State.pending)],
+        transitions: [t('idle', 'fetch', 'pending')],
         inject: {
           service: () => service,
           asyncService: async () => asyncService,
         },
       });
 
-      stateMachine.on(Event.fetch, callback);
+      stateMachine.on('fetch', callback);
 
       await stateMachine.fetch();
       expect(callback).toHaveBeenCalledTimes(1);
@@ -534,20 +529,22 @@ describe('StateMachine', () => {
           service: typeof service;
         }
       >({
-        initial: State.idle,
+        initial: 'idle',
         data: () => ({ foo: 'bar' }),
-        transitions: [t(State.idle, Event.fetch, State.pending)],
+        transitions: [t('idle', 'fetch', 'pending')],
         inject: {
           service: () => service,
         },
         states: () => ({
-          [State.pending]: nested({
+          pending: nested({
             id: 'nested-fsm',
             history: 'none',
-            initial: State.idle,
-            transitions: [t(State.idle, Event.fetch, State.pending)],
+            initial: 'idle' as State,
+            transitions: [
+              t('idle' as State, 'fetch' as Event, 'pending' as State),
+            ],
             subscribers: {
-              [Event.fetch]: [callback],
+              fetch: [callback],
             },
           }),
         }),
@@ -564,41 +561,46 @@ describe('StateMachine', () => {
   });
 
   describe('nested', () => {
-    enum NestedStates {
-      walk = 'walk',
-      dontWalk = 'dontWalk',
-    }
+    // Using `as const` for nested FSM types
+    const NestedStates = {
+      walk: 'walk',
+      dontWalk: 'dontWalk',
+    } as const;
+    type NestedStates = (typeof NestedStates)[keyof typeof NestedStates];
 
-    enum NestedEvents {
-      toggle = 'toggle',
-    }
+    const NestedEvents = {
+      toggle: 'toggle',
+    } as const;
+    type NestedEvents = (typeof NestedEvents)[keyof typeof NestedEvents];
 
-    enum State {
-      green = 'green',
-      yellow = 'yellow',
-      red = 'red',
-    }
+    const TrafficState = {
+      green: 'green',
+      yellow: 'yellow',
+      red: 'red',
+    } as const;
+    type TrafficState = (typeof TrafficState)[keyof typeof TrafficState];
 
-    enum Event {
-      next = 'next',
-    }
+    const TrafficEvent = {
+      next: 'next',
+    } as const;
+    type TrafficEvent = (typeof TrafficEvent)[keyof typeof TrafficEvent];
 
     it('should be able to define nested FSM', async () => {
       const fsm = new StateMachine<
-        State | NestedStates,
-        Event | NestedEvents,
+        TrafficState | NestedStates,
+        TrafficEvent | NestedEvents,
         FsmContext<{ test: string }>
       >({
         id: 'fsm',
-        initial: State.green,
+        initial: TrafficState.green,
         data: () => ({ test: 'bar' }),
         transitions: [
-          t(State.green, Event.next, State.yellow),
-          t(State.yellow, Event.next, State.red),
-          t(State.red, Event.next, State.green),
+          t(TrafficState.green, TrafficEvent.next, TrafficState.yellow),
+          t(TrafficState.yellow, TrafficEvent.next, TrafficState.red),
+          t(TrafficState.red, TrafficEvent.next, TrafficState.green),
         ],
         states: () => ({
-          [State.red]: nested({
+          [TrafficState.red]: nested({
             id: 'nested-fsm',
             initial: NestedStates.dontWalk,
             transitions: [
@@ -610,7 +612,7 @@ describe('StateMachine', () => {
 
       await fsm.next();
       await fsm.next();
-      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.is(TrafficState.red)).toBe(true);
       expect(fsm.child).toBeTruthy();
       await fsm.toggle();
 
@@ -618,26 +620,26 @@ describe('StateMachine', () => {
       expect(fsm.isWalk()).toBe(true);
       await fsm.next();
 
-      expect(fsm.is(State.green)).toBe(true);
+      expect(fsm.is(TrafficState.green)).toBe(true);
       expect(fsm.isWalk()).toBe(false);
     });
 
     it('should change context of nested FSM', async () => {
       const fsm = new StateMachine<
-        State | NestedStates,
-        Event | NestedEvents,
+        TrafficState | NestedStates,
+        TrafficEvent | NestedEvents,
         FsmContext<{ test: string }>
       >({
         id: 'fsm',
-        initial: State.green,
+        initial: TrafficState.green,
         data: () => ({ test: 'bar' }),
         transitions: [
-          t(State.green, Event.next, State.yellow),
-          t(State.yellow, Event.next, State.red),
-          t(State.red, Event.next, State.green),
+          t(TrafficState.green, TrafficEvent.next, TrafficState.yellow),
+          t(TrafficState.yellow, TrafficEvent.next, TrafficState.red),
+          t(TrafficState.red, TrafficEvent.next, TrafficState.green),
         ],
         states: () => ({
-          [State.red]: nested<
+          [TrafficState.red]: nested<
             NestedStates,
             NestedEvents,
             FsmContext<{ test: string }>
@@ -661,20 +663,20 @@ describe('StateMachine', () => {
 
       await fsm.next();
       await fsm.next();
-      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.is(TrafficState.red)).toBe(true);
 
       await fsm.toggle();
-      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.is(TrafficState.red)).toBe(true);
       expect(fsm.child?.is(NestedStates.walk)).toBe(true);
       expect(fsm.child?.data).toEqual({ test: 'foo' });
 
       await fsm.next();
-      expect(fsm.is(State.green)).toBe(true);
+      expect(fsm.is(TrafficState.green)).toBe(true);
       expect(fsm.child?.is(NestedStates.walk)).toBeFalsy();
 
       await fsm.next();
       await fsm.next();
-      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.is(TrafficState.red)).toBe(true);
       expect(fsm.child?.data).toEqual({ test: 'foo' });
     });
 
@@ -683,20 +685,20 @@ describe('StateMachine', () => {
         test: string;
       }
       const fsm = new StateMachine<
-        State | NestedStates,
-        Event | NestedEvents,
+        TrafficState | NestedStates,
+        TrafficEvent | NestedEvents,
         FsmContext<Payload>
       >({
         id: 'fsm',
-        initial: State.green,
+        initial: TrafficState.green,
         data: () => ({ test: 'bar' }),
         transitions: [
-          t(State.green, Event.next, State.yellow),
-          t(State.yellow, Event.next, State.red),
-          t(State.red, Event.next, State.green),
+          t(TrafficState.green, TrafficEvent.next, TrafficState.yellow),
+          t(TrafficState.yellow, TrafficEvent.next, TrafficState.red),
+          t(TrafficState.red, TrafficEvent.next, TrafficState.green),
         ],
         states: () => ({
-          [State.red]: nested<
+          [TrafficState.red]: nested<
             NestedStates,
             NestedEvents,
             FsmContext<{ test: string }>
@@ -721,20 +723,20 @@ describe('StateMachine', () => {
 
       await fsm.next();
       await fsm.next();
-      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.is(TrafficState.red)).toBe(true);
 
       await fsm.toggle();
-      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.is(TrafficState.red)).toBe(true);
       expect(fsm.child?.is(NestedStates.walk)).toBe(true);
       expect(fsm.child?.data).toEqual({ test: 'foo' });
 
       await fsm.next();
-      expect(fsm.is(State.green)).toBe(true);
+      expect(fsm.is(TrafficState.green)).toBe(true);
       expect(fsm.child?.is(NestedStates.walk)).toBeFalsy();
 
       await fsm.next();
       await fsm.next();
-      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.is(TrafficState.red)).toBe(true);
       expect(fsm.child?.data).toEqual({ test: 'bar' });
     });
 
@@ -748,8 +750,8 @@ describe('StateMachine', () => {
       ) {
         handlerContext = this;
       });
-      type States = State | NestedStates;
-      type Events = Event | NestedEvents;
+      type States = TrafficState | NestedStates;
+      type Events = TrafficEvent | NestedEvents;
 
       const fsm = new StateMachine<
         States,
@@ -757,15 +759,15 @@ describe('StateMachine', () => {
         FsmContext<{ test: string }>
       >({
         id: 'fsm',
-        initial: State.green,
+        initial: TrafficState.green,
         data: () => ({ test: 'bar' }),
         transitions: [
-          t(State.green, Event.next, State.yellow),
-          t(State.yellow, Event.next, State.red),
-          t(State.red, Event.next, State.green),
+          t(TrafficState.green, TrafficEvent.next, TrafficState.yellow),
+          t(TrafficState.yellow, TrafficEvent.next, TrafficState.red),
+          t(TrafficState.red, TrafficEvent.next, TrafficState.green),
         ],
         states: () => ({
-          [State.red]: nested({
+          [TrafficState.red]: nested({
             id: 'nested-fsm',
             initial: NestedStates.dontWalk,
             transitions: [
@@ -778,26 +780,26 @@ describe('StateMachine', () => {
           }),
         }),
         subscribers: {
-          [Event.next]: [callback],
+          [TrafficEvent.next]: [callback],
         },
       });
 
       await fsm.next();
       await fsm.next();
-      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.is(TrafficState.red)).toBe(true);
 
       await fsm.toggle();
-      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.is(TrafficState.red)).toBe(true);
       expect(fsm.child?.is(NestedStates.walk)).toBe(true);
       expect(fsm.child?.data).toEqual({ test: 'foo' });
 
       await fsm.next();
-      expect(fsm.is(State.green)).toBe(true);
+      expect(fsm.is(TrafficState.green)).toBe(true);
       expect(fsm.child?.is(NestedStates.walk)).toBeFalsy();
 
       await fsm.next();
       await fsm.next();
-      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.is(TrafficState.red)).toBe(true);
       expect(fsm.child?.data).toEqual({ test: 'foo' });
 
       expect(callback).toHaveBeenCalledTimes(5);
@@ -808,21 +810,21 @@ describe('StateMachine', () => {
 
     it('should be able to add nested states dynamically', async () => {
       const fsm = new StateMachine<
-        State | NestedStates,
-        Event | NestedEvents,
+        TrafficState | NestedStates,
+        TrafficEvent | NestedEvents,
         never
       >({
         id: 'fsm',
-        initial: State.green,
+        initial: TrafficState.green,
         transitions: [
-          t(State.green, Event.next, State.yellow),
-          t(State.yellow, Event.next, State.red),
-          t(State.red, Event.next, State.green),
+          t(TrafficState.green, TrafficEvent.next, TrafficState.yellow),
+          t(TrafficState.yellow, TrafficEvent.next, TrafficState.red),
+          t(TrafficState.red, TrafficEvent.next, TrafficState.green),
         ],
       });
 
       fsm.addNestedMachine(
-        State.red,
+        TrafficState.red,
         nested({
           id: 'nested-fsm',
           initial: NestedStates.dontWalk,
@@ -834,31 +836,31 @@ describe('StateMachine', () => {
 
       await fsm.next();
       await fsm.next();
-      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.is(TrafficState.red)).toBe(true);
 
       await fsm.toggle();
-      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.is(TrafficState.red)).toBe(true);
       expect(fsm.child?.is(NestedStates.walk)).toBe(true);
 
       await fsm.next();
-      expect(fsm.is(State.green)).toBe(true);
+      expect(fsm.is(TrafficState.green)).toBe(true);
     });
 
     it('should be able to remove nested states dynamically', async () => {
       const fsm = new StateMachine<
-        State | NestedStates,
-        Event | NestedEvents,
+        TrafficState | NestedStates,
+        TrafficEvent | NestedEvents,
         never
       >({
         id: 'fsm',
-        initial: State.green,
+        initial: TrafficState.green,
         transitions: [
-          t(State.green, Event.next, State.yellow),
-          t(State.yellow, Event.next, State.red),
-          t(State.red, Event.next, State.green),
+          t(TrafficState.green, TrafficEvent.next, TrafficState.yellow),
+          t(TrafficState.yellow, TrafficEvent.next, TrafficState.red),
+          t(TrafficState.red, TrafficEvent.next, TrafficState.green),
         ],
         states: () => ({
-          [State.red]: nested({
+          [TrafficState.red]: nested({
             id: 'nested-fsm',
             initial: NestedStates.dontWalk,
             transitions: [
@@ -870,10 +872,10 @@ describe('StateMachine', () => {
 
       await fsm.next();
       await fsm.next();
-      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.is(TrafficState.red)).toBe(true);
       expect(fsm.child).toBeTruthy();
 
-      fsm.removeState(State.red);
+      fsm.removeState(TrafficState.red);
 
       expect(fsm.isRed()).toBe(true);
       expect(fsm.child).toBeFalsy();
@@ -895,17 +897,17 @@ describe('StateMachine', () => {
       };
 
       const fsm = new StateMachine<
-        State | NestedStates,
-        Event | NestedEvents,
+        TrafficState | NestedStates,
+        TrafficEvent | NestedEvents,
         BaseFSMContext
       >({
         id: 'fsm',
-        initial: State.green,
+        initial: TrafficState.green,
         data: () => ({ test: 'bar' }),
         transitions: [
-          t(State.green, Event.next, State.yellow),
-          t(State.yellow, Event.next, State.red),
-          t(State.red, Event.next, State.green),
+          t(TrafficState.green, TrafficEvent.next, TrafficState.yellow),
+          t(TrafficState.yellow, TrafficEvent.next, TrafficState.red),
+          t(TrafficState.red, TrafficEvent.next, TrafficState.green),
         ],
         states: () => {
           const _nested = nested<NestedStates, NestedEvents, NestedFSMContext>({
@@ -935,7 +937,7 @@ describe('StateMachine', () => {
           });
 
           return {
-            [State.red]: _nested,
+            [TrafficState.red]: _nested,
           };
         },
       });
@@ -945,7 +947,7 @@ describe('StateMachine', () => {
       await fsm.next();
       await fsm.next();
 
-      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.is(TrafficState.red)).toBe(true);
       expect(fsm.child).toBeTruthy();
 
       await fsm.toggle();
@@ -959,41 +961,45 @@ describe('StateMachine', () => {
 
   describe('parallel', () => {
     it('should make transition in all nested FSMs one by one', async () => {
-      enum NestedStates {
-        walk = 'walk',
-        dontWalk = 'dontWalk',
-      }
+      const NestedStates = {
+        walk: 'walk',
+        dontWalk: 'dontWalk',
+      } as const;
+      type NestedStates = (typeof NestedStates)[keyof typeof NestedStates];
 
-      enum NestedEvents {
-        toggle = 'toggle',
-      }
+      const NestedEvents = {
+        toggle: 'toggle',
+      } as const;
+      type NestedEvents = (typeof NestedEvents)[keyof typeof NestedEvents];
 
-      enum State {
-        green = 'green',
-        yellow = 'yellow',
-        red = 'red',
-      }
+      const ParallelState = {
+        green: 'green',
+        yellow: 'yellow',
+        red: 'red',
+      } as const;
+      type ParallelState = (typeof ParallelState)[keyof typeof ParallelState];
 
-      enum Event {
-        next = 'next',
-      }
+      const ParallelEvent = {
+        next: 'next',
+      } as const;
+      type ParallelEvent = (typeof ParallelEvent)[keyof typeof ParallelEvent];
 
       let count = 0;
 
       const fsm = new StateMachine<
-        State | NestedStates,
-        Event | NestedEvents,
+        ParallelState | NestedStates,
+        ParallelEvent | NestedEvents,
         never
       >({
         id: 'fsm',
-        initial: State.green,
+        initial: ParallelState.green,
         transitions: [
-          t(State.green, Event.next, State.yellow),
-          t(State.yellow, Event.next, State.red),
-          t(State.red, Event.next, State.green),
+          t(ParallelState.green, ParallelEvent.next, ParallelState.yellow),
+          t(ParallelState.yellow, ParallelEvent.next, ParallelState.red),
+          t(ParallelState.red, ParallelEvent.next, ParallelState.green),
         ],
         states: () => ({
-          [State.red]: parallel(
+          [ParallelState.red]: parallel(
             nested({
               id: 'nested-fsm',
               initial: NestedStates.dontWalk,
@@ -1028,8 +1034,10 @@ describe('StateMachine', () => {
             }),
             nested({
               id: 'nested-fsm3',
-              initial: State.red,
-              transitions: [t(State.red, Event.next, State.yellow)],
+              initial: ParallelState.red,
+              transitions: [
+                t(ParallelState.red, ParallelEvent.next, ParallelState.yellow),
+              ],
             }),
           ),
         }),
@@ -1038,8 +1046,10 @@ describe('StateMachine', () => {
       const nestedParallel = parallel(
         nested({
           id: 'nested-fsm3',
-          initial: State.red,
-          transitions: [t(State.red, Event.next, State.yellow)],
+          initial: ParallelState.red,
+          transitions: [
+            t(ParallelState.red, ParallelEvent.next, ParallelState.yellow),
+          ],
         }),
       );
 
@@ -1048,17 +1058,17 @@ describe('StateMachine', () => {
 
       await fsm.next();
       await fsm.next();
-      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.is(ParallelState.red)).toBe(true);
 
       await fsm.toggle();
-      expect(fsm.is(State.red)).toBe(true);
+      expect(fsm.is(ParallelState.red)).toBe(true);
       expect(fsm.child?.is(NestedStates.walk)).toBe(true);
 
       await fsm.next();
-      expect(fsm.child?.is(State.yellow)).toBe(true);
+      expect(fsm.child?.is(ParallelState.yellow)).toBe(true);
 
       await fsm.next();
-      expect(fsm.is(State.green)).toBe(true);
+      expect(fsm.is(ParallelState.green)).toBe(true);
       expect(fsm.child?.is(NestedStates.walk)).toBeFalsy();
 
       expect(count).toBe(3);
@@ -1080,15 +1090,19 @@ describe('StateMachine', () => {
         onExitCallbackContext = this;
       });
 
-      const stateMachine = new StateMachine({
-        initial: State.idle,
+      const stateMachine = new StateMachine<
+        State,
+        Event,
+        FsmContext<{ foo: string }>
+      >({
+        initial: 'idle',
         data: () => ({ foo: 'bar' }),
         transitions: [
-          t(State.idle, Event.fetch, State.pending),
-          t(All, Event.resolve, State.idle, { onExit: callback }),
+          t('idle', 'fetch', 'pending'),
+          t(All, 'resolve', 'idle', { onExit: callback }),
         ],
         subscribers: {
-          [Event.fetch]: [subscribeCallback],
+          fetch: [subscribeCallback],
         },
       });
 
@@ -1124,9 +1138,9 @@ describe('StateMachine', () => {
         Event,
         FsmContext<{ foo: string }>
       >({
-        initial: State.idle,
+        initial: 'idle',
         data: () => ({ foo: 'bar' }),
-        transitions: [t(State.idle, Event.fetch, State.pending)],
+        transitions: [t('idle', 'fetch', 'pending')],
       });
 
       const bound = {
@@ -1134,9 +1148,9 @@ describe('StateMachine', () => {
       };
 
       stateMachine.bind(bound);
-      stateMachine.on(Event.fetch, subscribeCallback);
+      stateMachine.on('fetch', subscribeCallback);
 
-      stateMachine.addTransition(State.pending, Event.resolve, State.idle, {
+      stateMachine.addTransition('pending', 'resolve', 'idle', {
         onEnter: callback,
       });
 
@@ -1157,26 +1171,40 @@ describe('StateMachine', () => {
       expect(stateMachine.dehydrate()).toEqual({ current: 'idle', data: {} });
     });
 
-    it('should be able to dehydrate state machine from plain object', () => {
-      const stateMachine = createFetchStateMachine();
+    it('should be able to hydrate state machine from plain object', () => {
+      const stateMachine = new StateMachine<
+        State,
+        Event,
+        FsmContext<{ foo: string }>
+      >({
+        id: 'fetch fsm',
+        initial: 'idle',
+        data: () => ({ foo: '' }),
+        transitions: [
+          t('idle', 'fetch', 'pending'),
+          t('pending', 'resolve', 'idle'),
+        ],
+      });
 
-      stateMachine.hydrate({ current: State.pending, data: { foo: 'bar' } });
+      stateMachine.hydrate({ current: 'pending', data: { foo: 'bar' } });
 
-      expect(stateMachine.current).toBe(State.pending);
+      expect(stateMachine.current).toBe('pending');
       expect(stateMachine.data).toEqual({ foo: 'bar' });
     });
 
     it('should be able to hydrate and dehydrate nested FSM', async () => {
-      const fsm = new StateMachine({
+      const fsm = new StateMachine<State, Event, FsmContext<{ foo: string }>>({
         id: 'fsm',
-        initial: State.idle,
+        initial: 'idle',
         data: () => ({ foo: 'bar' }),
-        transitions: [t(State.idle, Event.fetch, State.pending)],
+        transitions: [t('idle', 'fetch', 'pending')],
         states: () => ({
-          [State.pending]: nested({
+          pending: nested({
             id: 'nested-fsm',
-            initial: State.idle,
-            transitions: [t(State.idle, Event.fetch, State.pending)],
+            initial: 'idle' as State,
+            transitions: [
+              t('idle' as State, 'fetch' as Event, 'pending' as State),
+            ],
           }),
         }),
       });
@@ -1195,17 +1223,17 @@ describe('StateMachine', () => {
       });
 
       fsm.hydrate({
-        current: State.pending,
+        current: 'pending',
         data: { foo: 'bar' },
         nested: {
-          current: State.idle,
+          current: 'idle',
           data: {},
         },
       });
 
-      expect(fsm.current).toBe(State.pending);
+      expect(fsm.current).toBe('pending');
       expect(fsm.data).toEqual({ foo: 'bar' });
-      expect(fsm.child?.current).toBe(State.idle);
+      expect(fsm.child?.current).toBe('idle');
       expect(fsm.child?.data).toEqual({});
     });
   });

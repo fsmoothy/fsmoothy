@@ -1,27 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import type { FsmContext } from '../..';
-import { StateMachine } from '../..';
+import { defineEvents, defineStates, StateMachine } from '../..';
 
-enum States {
-  Sleeping = 'sleeping',
-  Running = 'running',
-  Cleaning = 'cleaning',
-}
+const State = defineStates('sleeping', 'running', 'cleaning');
+type State = typeof State.type;
 
-enum Events {
-  Run = 'run',
-  Clean = 'clean',
-  Sleep = 'sleep',
-}
+const Event = defineEvents('run', 'clean', 'sleep');
+type Event = typeof Event.type;
 
 interface IContext {
   isCleanerAvailable: boolean;
 }
 
-class JobStatus extends StateMachine<States, Events, FsmContext<IContext>> {
+class JobStatus extends StateMachine<State, Event, FsmContext<IContext>> {
   constructor() {
     super({
-      initial: States.Sleeping,
+      initial: State.sleeping,
       async data() {
         const isCleanerAvailable = await Promise.resolve(true);
         return {
@@ -30,21 +24,21 @@ class JobStatus extends StateMachine<States, Events, FsmContext<IContext>> {
       },
     });
 
-    this.addTransition(States.Sleeping, Events.Run, States.Running, {
+    this.addTransition(State.sleeping, Event.run, State.running, {
       onExit(context) {
         context.data.isCleanerAvailable = true;
       },
     })
-      .addTransition(States.Running, Events.Clean, States.Cleaning, {
+      .addTransition(State.running, Event.clean, State.cleaning, {
         guard: (context) => context.data.isCleanerAvailable,
         onExit(context) {
           context.data.isCleanerAvailable = false;
         },
       })
       .addTransition(
-        [States.Cleaning, States.Running],
-        Events.Sleep,
-        States.Sleeping,
+        [State.cleaning, State.running],
+        Event.sleep,
+        State.sleeping,
       );
   }
 }

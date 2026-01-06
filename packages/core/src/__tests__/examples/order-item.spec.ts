@@ -1,22 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import type { FsmContext } from '../..';
-import { StateMachine, t } from '../..';
+import { defineEvents, defineStates, StateMachine, t } from '../..';
 
-enum OrderItemState {
-  draft = 'draft',
-  assembly = 'assembly',
-  warehouse = 'warehouse',
-  shipping = 'shipping',
-  delivered = 'delivered',
-}
+const OrderItemState = defineStates(
+  'draft',
+  'assembly',
+  'warehouse',
+  'shipping',
+  'delivered',
+);
+type OrderItemState = typeof OrderItemState.type;
 
-enum OrderItemEvent {
-  create = 'create',
-  assemble = 'assemble',
-  transfer = 'transfer',
-  ship = 'ship',
-  deliver = 'deliver',
-}
+const OrderItemEvent = defineEvents(
+  'create',
+  'assemble',
+  'transfer',
+  'ship',
+  'deliver',
+);
+type OrderItemEvent = typeof OrderItemEvent.type;
 
 interface IOrderItemContext {
   place: string;

@@ -1,3 +1,4 @@
+import { defineEvents, defineStates } from '@fsmoothy/core';
 import { Column, DataSource, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { PGliteDriver } from 'typeorm-pglite';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
@@ -9,18 +10,11 @@ import { StateMachineEntity, state, t } from '../..';
  * We're uploading a file to S3 bucket and want to track its state.
  */
 
-enum FileState {
-  Pending = 'pending',
-  Uploading = 'uploading',
-  Completed = 'completed',
-  Failed = 'failed',
-}
+const FileState = defineStates('pending', 'uploading', 'completed', 'failed');
+type FileState = typeof FileState.type;
 
-enum FileEvent {
-  Start = 'start',
-  Finish = 'finish',
-  Fail = 'fail',
-}
+const FileEvent = defineEvents('start', 'finish', 'fail');
+type FileEvent = typeof FileEvent.type;
 
 interface IFile {
   id: string;
@@ -31,12 +25,12 @@ interface IFile {
 @Entity('file')
 class File
   extends StateMachineEntity({
-    status: state({
+    status: state<FileState, FileEvent>({
       id: 'fileStatus',
-      initial: FileState.Pending,
+      initial: FileState.pending,
       transitions: [
-        t(FileState.Pending, FileEvent.Start, FileState.Uploading),
-        t(FileState.Uploading, FileEvent.Finish, FileState.Completed, {
+        t(FileState.pending, FileEvent.start, FileState.uploading),
+        t(FileState.uploading, FileEvent.finish, FileState.completed, {
           async guard(this: IFile, _context, url: string) {
             return this.url !== url;
           },
@@ -45,9 +39,9 @@ class File
           },
         }),
         t(
-          [FileState.Pending, FileState.Uploading],
-          FileEvent.Fail,
-          FileState.Failed,
+          [FileState.pending, FileState.uploading],
+          FileEvent.fail,
+          FileState.failed,
         ),
       ],
     }),
@@ -109,14 +103,14 @@ describe('File upload', () => {
     const savedFile = await findFileById(file.id);
 
     expect(savedFile).toEqual(
-      expect.objectContaining({ status: FileState.Uploading }),
+      expect.objectContaining({ status: FileState.uploading }),
     );
 
     await file.fsm.status.finish('https://example.com');
     expect(file.fsm.status.isCompleted()).toBe(true);
     expect(await findFileById(file.id)).toEqual(
       expect.objectContaining({
-        status: FileState.Completed,
+        status: FileState.completed,
         url: 'https://example.com',
       }),
     );
@@ -125,23 +119,23 @@ describe('File upload', () => {
   it('should bulk update to different state', async () => {
     const file1 = await dataSource.manager
       .create(File, {
-        status: FileState.Pending,
+        status: FileState.pending,
       })
       .save();
     const file2 = await dataSource.manager
       .create(File, {
-        status: FileState.Uploading,
+        status: FileState.uploading,
       })
       .save();
 
     const filesToUpdate = [
       {
         file: file1,
-        event: FileEvent.Start,
+        event: FileEvent.start,
       },
       {
         file: file2,
-        event: FileEvent.Fail,
+        event: FileEvent.fail,
       },
     ];
 

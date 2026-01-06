@@ -1,19 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import type { FsmContext } from '../..';
-import { StateMachine, t } from '../..';
+import { defineEvents, defineStates, StateMachine, t } from '../..';
 
-enum State {
-  Idle = 'idle',
-  Dispensing = 'dispensing',
-  ProductSelected = 'productSelected',
-}
+// Using defineStates/defineEvents helpers instead of enum
+const State = defineStates('idle', 'dispensing', 'productSelected');
+type State = typeof State.type;
 
-enum Event {
-  SelectProduct = 'selectProduct',
-  DepositCoin = 'depositCoin',
-  ConfirmPurchase = 'confirmPurchase',
-  Reset = 'reset',
-}
+const Event = defineEvents(
+  'selectProduct',
+  'depositCoin',
+  'confirmPurchase',
+  'reset',
+);
+type Event = typeof Event.type;
 
 interface IProduct {
   name: string;
@@ -33,7 +32,7 @@ class VendingMachine extends StateMachine<
 > {
   constructor() {
     super({
-      initial: State.Idle,
+      initial: State.idle,
       data: () => ({
         products: new Map([
           [1, { name: 'Coke', price: 100 }],
@@ -44,22 +43,22 @@ class VendingMachine extends StateMachine<
         depositedCoins: 0,
       }),
       transitions: [
-        t(State.Idle, Event.SelectProduct, State.ProductSelected, {
+        t(State.idle, Event.selectProduct, State.productSelected, {
           onEnter(context, productId: number) {
             context.data.selectedProductId = productId;
           },
         }),
-        t(State.Idle, Event.DepositCoin, State.Idle, {
+        t(State.idle, Event.depositCoin, State.idle, {
           onEnter(context, coin: number) {
             context.data.depositedCoins += coin;
           },
         }),
-        t(State.ProductSelected, Event.DepositCoin, State.ProductSelected, {
+        t(State.productSelected, Event.depositCoin, State.productSelected, {
           onEnter(context, coin: number) {
             context.data.depositedCoins += coin;
           },
         }),
-        t(State.ProductSelected, Event.ConfirmPurchase, State.Dispensing, {
+        t(State.productSelected, Event.confirmPurchase, State.dispensing, {
           onExit(context) {
             context.data.depositedCoins -=
               context.data.products.get(context.data.selectedProductId!)
@@ -77,7 +76,7 @@ class VendingMachine extends StateMachine<
             return context.data.depositedCoins >= productPrice;
           },
         }),
-        t(State.Dispensing, Event.Reset, State.Idle),
+        t(State.dispensing, Event.reset, State.idle),
       ],
     });
   }
@@ -90,18 +89,18 @@ describe('Vending Machine', () => {
     expect(vendingMachineStateMachine.isIdle()).toBeTruthy();
 
     await vendingMachineStateMachine.selectProduct(1);
-    expect(vendingMachineStateMachine.current).toBe(State.ProductSelected);
+    expect(vendingMachineStateMachine.current).toBe(State.productSelected);
 
     await vendingMachineStateMachine.depositCoin(100);
-    expect(vendingMachineStateMachine.current).toBe(State.ProductSelected);
+    expect(vendingMachineStateMachine.current).toBe(State.productSelected);
 
     await vendingMachineStateMachine.depositCoin(100);
-    expect(vendingMachineStateMachine.current).toBe(State.ProductSelected);
+    expect(vendingMachineStateMachine.current).toBe(State.productSelected);
 
     await vendingMachineStateMachine.confirmPurchase();
-    expect(vendingMachineStateMachine.current).toBe(State.Dispensing);
+    expect(vendingMachineStateMachine.current).toBe(State.dispensing);
 
     await vendingMachineStateMachine.reset();
-    expect(vendingMachineStateMachine.current).toBe(State.Idle);
+    expect(vendingMachineStateMachine.current).toBe(State.idle);
   });
 });

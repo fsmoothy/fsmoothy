@@ -1,4 +1,4 @@
-import type { FsmContext } from '@fsmoothy/core';
+import { defineEvents, defineStates, type FsmContext } from '@fsmoothy/core';
 import {
   Column,
   DataSource,
@@ -18,34 +18,35 @@ import {
 } from 'vitest';
 import { StateMachineEntity, state, t } from '../';
 
-enum OrderState {
-  Draft = 'draft',
-  Pending = 'pending',
-  Paid = 'paid',
-  Shipped = 'shipped',
-  Completed = 'completed',
-}
-enum OrderEvent {
-  Create = 'create',
-  Pay = 'pay',
-  Ship = 'ship',
-  Complete = 'complete',
-}
+const OrderState = defineStates(
+  'draft',
+  'pending',
+  'paid',
+  'shipped',
+  'completed',
+);
+type OrderState = typeof OrderState.type;
 
-enum OrderItemState {
-  Draft = 'draft',
-  Assembly = 'assembly',
-  Warehouse = 'warehouse',
-  Shipping = 'shipping',
-  Delivered = 'delivered',
-}
-enum OrderItemEvent {
-  Create = 'create',
-  Assemble = 'assemble',
-  Transfer = 'transfer',
-  Ship = 'ship',
-  Deliver = 'deliver',
-}
+const OrderEvent = defineEvents('create', 'pay', 'ship', 'complete');
+type OrderEvent = typeof OrderEvent.type;
+
+const OrderItemState = defineStates(
+  'draft',
+  'assembly',
+  'warehouse',
+  'shipping',
+  'delivered',
+);
+type OrderItemState = typeof OrderItemState.type;
+
+const OrderItemEvent = defineEvents(
+  'create',
+  'assemble',
+  'transfer',
+  'ship',
+  'deliver',
+);
+type OrderItemEvent = typeof OrderItemEvent.type;
 
 interface IOrderItemContext {
   place: string;
@@ -60,12 +61,12 @@ const OrderStateMachineEntity = StateMachineEntity(
   {
     status: state<OrderState, OrderEvent>({
       id: 'orderStatus',
-      initial: OrderState.Draft,
+      initial: OrderState.draft,
       transitions: [
-        t(OrderState.Draft, OrderEvent.Create, OrderState.Pending),
-        t(OrderState.Pending, OrderEvent.Pay, OrderState.Paid),
-        t(OrderState.Paid, OrderEvent.Ship, OrderState.Shipped),
-        t(OrderState.Shipped, OrderEvent.Complete, OrderState.Completed),
+        t(OrderState.draft, OrderEvent.create, OrderState.pending),
+        t(OrderState.pending, OrderEvent.pay, OrderState.paid),
+        t(OrderState.paid, OrderEvent.ship, OrderState.shipped),
+        t(OrderState.shipped, OrderEvent.complete, OrderState.completed),
       ],
     }),
     itemsStatus: state<
@@ -74,23 +75,23 @@ const OrderStateMachineEntity = StateMachineEntity(
       FsmContext<IOrderItemContext>
     >({
       id: 'orderItemsStatus',
-      initial: OrderItemState.Draft,
+      initial: OrderItemState.draft,
       data() {
         return {
           place: 'My warehouse',
         };
       },
       transitions: [
-        t(OrderItemState.Draft, OrderItemEvent.Create, OrderItemState.Assembly),
+        t(OrderItemState.draft, OrderItemEvent.create, OrderItemState.assembly),
         t(
-          OrderItemState.Assembly,
-          OrderItemEvent.Assemble,
-          OrderItemState.Warehouse,
+          OrderItemState.assembly,
+          OrderItemEvent.assemble,
+          OrderItemState.warehouse,
         ),
         t(
-          OrderItemState.Warehouse,
-          OrderItemEvent.Transfer,
-          OrderItemState.Warehouse,
+          OrderItemState.warehouse,
+          OrderItemEvent.transfer,
+          OrderItemState.warehouse,
           {
             guard(context, place: string) {
               return context.data.place !== place;
@@ -101,14 +102,14 @@ const OrderStateMachineEntity = StateMachineEntity(
           },
         ),
         t(
-          [OrderItemState.Assembly, OrderItemState.Warehouse],
-          OrderItemEvent.Ship,
-          OrderItemState.Shipping,
+          [OrderItemState.assembly, OrderItemState.warehouse],
+          OrderItemEvent.ship,
+          OrderItemState.shipping,
         ),
         t(
-          OrderItemState.Shipping,
-          OrderItemEvent.Deliver,
-          OrderItemState.Delivered,
+          OrderItemState.shipping,
+          OrderItemEvent.deliver,
+          OrderItemState.delivered,
         ),
       ],
     }),
@@ -160,8 +161,8 @@ describe('StateMachineEntity', () => {
     expect(order).toBeDefined();
     expect(order.fsm.status.isDraft()).toBe(true);
     expect(order.fsm.itemsStatus.isDraft()).toBe(true);
-    expect(order.status).toBe(OrderState.Draft);
-    expect(order.itemsStatus).toBe(OrderItemState.Draft);
+    expect(order.status).toBe(OrderState.draft);
+    expect(order.itemsStatus).toBe(OrderItemState.draft);
   });
 
   it('state should change after event', async () => {
@@ -178,7 +179,7 @@ describe('StateMachineEntity', () => {
       },
     });
 
-    expect(orderFromDatabase.fsm.status.current).toBe(OrderState.Pending);
+    expect(orderFromDatabase.fsm.status.current).toBe(OrderState.pending);
   });
 
   it('should be able to pass correct contexts (this and ctx) to subscribers', async () => {
@@ -193,7 +194,7 @@ describe('StateMachineEntity', () => {
       handlerContext = this;
     });
 
-    order.fsm.itemsStatus.on(OrderItemEvent.Create, handler);
+    order.fsm.itemsStatus.on(OrderItemEvent.create, handler);
 
     await order.fsm.itemsStatus.create();
 
@@ -235,6 +236,6 @@ describe('StateMachineEntity', () => {
       },
     });
 
-    expect(orderFromDatabase.fsm.status.current).toBe(OrderState.Pending);
+    expect(orderFromDatabase.fsm.status.current).toBe(OrderState.pending);
   });
 });

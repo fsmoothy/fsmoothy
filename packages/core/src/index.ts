@@ -1,3 +1,5 @@
+export type { ValueOf } from './define';
+export { defineEvents, defineStates } from './define';
 export { StateMachine } from './fsm';
 export { isStateMachineTransitionError } from './fsm.error';
 export { nested, parallel } from './nested';
