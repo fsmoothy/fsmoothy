@@ -3,14 +3,14 @@ import {
   isStateMachineTransitionError,
 } from './fsm.error';
 import {
-  initialTransition,
-  prepareStates,
-  prepareTransitions,
-  prepareSubscribers,
-  populateEventMethods,
-  populateCheckers,
-  addIsChecker,
   addEventMethods,
+  addIsChecker,
+  initialTransition,
+  populateCheckers,
+  populateEventMethods,
+  prepareStates,
+  prepareSubscribers,
+  prepareTransitions,
 } from './heplers';
 import { All } from './symbols';
 import { t } from './transition';
@@ -19,20 +19,20 @@ import type { TransitionOptions } from './transition';
 import type {
   AllowedNames,
   Callback,
-  Transition,
   FsmContext,
   Guard,
-  IStateMachine,
-  ParallelState,
-  INestedStateMachine,
   HydratedState,
+  INestedStateMachine,
+  IStateMachine,
+  IStateMachineInspectRepresentation,
   Nested,
+  ParallelState,
   StateMachineConstructor,
   StateMachineParameters,
   States,
-  TransitionsStorage,
-  IStateMachineInspectRepresentation,
+  Transition,
   TransitionInspectRepresentation,
+  TransitionsStorage,
 } from './types';
 
 export class _StateMachine<

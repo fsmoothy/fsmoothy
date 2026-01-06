@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { t, StateMachine, nested } from '../..';
+import { StateMachine, nested, t } from '../..';
 
 enum State {
   green = 'green',

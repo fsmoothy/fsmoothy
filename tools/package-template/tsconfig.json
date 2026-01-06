@@ -3,10 +3,7 @@
   "compilerOptions": {
     "declarationMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
+    "baseUrl": "./"
   },
-  "include": [
-    "src/**/*",
-    "./vitest.config.ts"
-  ]
+  "include": ["src/**/*", "./vitest.config.ts"]
 }

@@ -1,9 +1,9 @@
 import type {
   AllowedNames,
   Callback,
+  FsmContext,
   Guard,
   Transition,
-  FsmContext,
 } from './types';
 
 export interface TransitionOptions<Context extends FsmContext<unknown>> {

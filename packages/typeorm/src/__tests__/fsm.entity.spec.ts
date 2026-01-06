@@ -7,13 +7,13 @@ import {
 } from 'typeorm';
 import { PGliteDriver } from 'typeorm-pglite';
 import {
+  afterAll,
+  afterEach,
+  beforeAll,
   describe,
   expect,
   it,
   vi,
-  afterEach,
-  beforeAll,
-  afterAll,
 } from 'vitest';
 
 import { StateMachineEntity, state, t } from '../';

@@ -18,11 +18,7 @@
     "type": "git",
     "url": "git+https://github.com/fsmoothy/fsmoothy.git"
   },
-  "keywords": [
-    "fsm",
-    "state-machine",
-    "typescript"
-  ],
+  "keywords": ["fsm", "state-machine", "typescript"],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/fsmoothy/fsmoothy/issues"
@@ -40,8 +36,5 @@
   "dependencies": {
     "@fsmoothy/core": "1.0.0"
   },
-  "files": [
-    "/package.json",
-    "/dist"
-  ]
+  "files": ["/package.json", "/dist"]
 }

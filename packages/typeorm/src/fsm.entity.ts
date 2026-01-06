@@ -5,8 +5,8 @@ import { StateMachine } from '@fsmoothy/core';
 import type {
   AllowedNames,
   FsmContext,
-  StateMachineParameters,
   IStateMachine,
+  StateMachineParameters,
   Transition,
 } from '@fsmoothy/core';
 
@@ -21,41 +21,44 @@ export interface IStateMachineEntityColumnParameters<
   saveAfterTransition?: boolean;
 }
 
-type ExtractState<Parameters extends object, Column extends keyof Parameters> =
-  Parameters[Column] extends IStateMachineEntityColumnParameters<
-    infer State,
-    any,
-    any
-  >
-    ? State extends AllowedNames
-      ? State
-      : never
-    : never;
+type ExtractState<
+  Parameters extends object,
+  Column extends keyof Parameters,
+> = Parameters[Column] extends IStateMachineEntityColumnParameters<
+  infer State,
+  any,
+  any
+>
+  ? State extends AllowedNames
+    ? State
+    : never
+  : never;
 
-type ExtractEvent<Parameters extends object, Column extends keyof Parameters> =
-  Parameters[Column] extends IStateMachineEntityColumnParameters<
-    any,
-    infer Event,
-    any
-  >
-    ? Event extends AllowedNames
-      ? Event
-      : never
-    : never;
+type ExtractEvent<
+  Parameters extends object,
+  Column extends keyof Parameters,
+> = Parameters[Column] extends IStateMachineEntityColumnParameters<
+  any,
+  infer Event,
+  any
+>
+  ? Event extends AllowedNames
+    ? Event
+    : never
+  : never;
 
 type ExtractContext<
   Parameters extends object,
   Column extends keyof Parameters,
-> =
-  Parameters[Column] extends IStateMachineEntityColumnParameters<
-    any,
-    any,
-    infer Context
-  >
-    ? Context extends object
-      ? Context
-      : never
-    : never;
+> = Parameters[Column] extends IStateMachineEntityColumnParameters<
+  any,
+  any,
+  infer Context
+>
+  ? Context extends object
+    ? Context
+    : never
+  : never;
 
 type BaseStateMachineEntity<
   State extends AllowedNames,
@@ -150,13 +153,16 @@ function wrapOnExit(
  *   ],
  * }}) {}
  */
-export const StateMachineEntity = function <
+export const StateMachineEntity = <
   const Parameters extends {
     [Column in Columns]: IStateMachineEntityColumnParameters<any, any, any>;
   },
   Entity extends BaseEntity = BaseEntity,
   const Columns extends keyof Parameters = keyof Parameters,
->(parameters: Parameters, _BaseEntity?: { new (): Entity }) {
+>(
+  parameters: Parameters,
+  _BaseEntity?: { new (): Entity },
+) => {
   const _Entity = _BaseEntity ?? BaseEntity;
 
   class _StateMachineEntity extends _Entity {
@@ -181,12 +187,10 @@ export const StateMachineEntity = function <
     const { initial, transitions, saveAfterTransition = true } = parameter;
 
     // @ts-expect-error - change readonly property
-    parameter.transitions = transitions?.map(function (transition) {
-      return {
-        ...transition,
-        onExit: wrapOnExit(transition, column, saveAfterTransition),
-      };
-    });
+    parameter.transitions = transitions?.map((transition) => ({
+      ...transition,
+      onExit: wrapOnExit(transition, column, saveAfterTransition),
+    }));
 
     const afterLoadMethodName = buildAfterLoadMethodName(column);
 

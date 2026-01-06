@@ -2,13 +2,13 @@ import { All } from './symbols';
 
 import type {
   AllowedNames,
+  Callback,
   FsmContext,
   IInternalTransition,
-  StateMachineParameters,
-  Transition,
-  Subscribers,
-  Callback,
   Nested,
+  StateMachineParameters,
+  Subscribers,
+  Transition,
 } from './types';
 
 export const InitialEvent = Symbol('InitialEvent') as any;

@@ -21,11 +21,7 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "keywords": [
-    "typeorm",
-    "fsm",
-    "state-machine"
-  ],
+  "keywords": ["typeorm", "fsm", "state-machine"],
   "engines": {
     "node": ">=18.0.0"
   },
@@ -51,10 +47,7 @@
   "dependencies": {
     "@fsmoothy/core": "1.4.0"
   },
-  "files": [
-    "/package.json",
-    "/dist"
-  ],
+  "files": ["/package.json", "/dist"],
   "devDependencies": {
     "@electric-sql/pglite": "^0.2.15",
     "@types/node": "^22.10.5",

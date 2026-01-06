@@ -2,7 +2,7 @@ import { Column, DataSource, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { PGliteDriver } from 'typeorm-pglite';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import { StateMachineEntity, t, state } from '../..';
+import { StateMachineEntity, state, t } from '../..';
 
 /**
  * First, user submits a file to the server.

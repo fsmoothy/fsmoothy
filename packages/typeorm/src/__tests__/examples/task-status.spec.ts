@@ -1,15 +1,15 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   BaseEntity,
   Column,
   DataSource,
-  OneToMany,
+  Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 import { PGliteDriver } from 'typeorm-pglite';
-import { describe, it, expect, afterAll, beforeAll } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { StateMachineEntity, state, t } from '../..';
 
@@ -18,13 +18,13 @@ import type { QueryRunner } from 'typeorm';
 
 const fakeDate = new Date('2020-01-01');
 
-const enum TaskState {
+enum TaskState {
   Inactive = 'inactive',
   Active = 'active',
   Completed = 'completed',
 }
 
-const enum TaskEvent {
+enum TaskEvent {
   Activate = 'activate',
   Complete = 'complete',
 }
@@ -74,7 +74,7 @@ const complete = t<TaskState, TaskEvent, ITaskContext>(
     },
     async onExit(this: ITask, context) {
       for (const tag of this.tags) {
-        tag.name = tag.name.toUpperCase() + '-completed';
+        tag.name = `${tag.name.toUpperCase()}-completed`;
         await context.qr.manager.save(Tag, tag);
       }
 
@@ -100,9 +100,13 @@ class Task
   @Column()
   title: string;
 
-  @OneToMany(() => Tag, (tag) => tag.task, {
-    eager: true,
-  })
+  @OneToMany(
+    () => Tag,
+    (tag) => tag.task,
+    {
+      eager: true,
+    },
+  )
   @JoinColumn({ name: 'tag_id' })
   tags: Array<Tag>;
 
@@ -118,7 +122,10 @@ class Tag extends BaseEntity implements ITag {
   @Column()
   name: string;
 
-  @ManyToOne(() => Task, (task) => task.id)
+  @ManyToOne(
+    () => Task,
+    (task) => task.id,
+  )
   task: Task;
 }
 

@@ -100,7 +100,7 @@ class AlarmClock extends StateMachine<ClockState, ClockEvent, ClockContext> {
     this.on(ClockEvent.Tick, this.onTick);
   }
 
-  async onTick(context: ClockContext, minutes: number = 1) {
+  async onTick(context: ClockContext, minutes = 1) {
     const _minutes = context.data.time.minutes + minutes;
     const _hours = context.data.time.hours + Math.floor(_minutes / 60);
 

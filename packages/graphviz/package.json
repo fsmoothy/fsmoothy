@@ -19,12 +19,7 @@
     "type": "git",
     "url": "git+https://github.com/fsmoothy/fsmoothy.git"
   },
-  "keywords": [
-    "fsm",
-    "state-machine",
-    "typescript",
-    "graphviz"
-  ],
+  "keywords": ["fsm", "state-machine", "typescript", "graphviz"],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/fsmoothy/fsmoothy/issues"
@@ -43,8 +38,5 @@
     "@fsmoothy/core": "1.4.0",
     "ts-graphviz": "2.1.5"
   },
-  "files": [
-    "/package.json",
-    "/dist"
-  ]
+  "files": ["/package.json", "/dist"]
 }

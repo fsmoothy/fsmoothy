@@ -2,11 +2,11 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  All,
   StateMachine,
   isStateMachineTransitionError,
   nested,
   parallel,
-  All,
   t,
 } from '..';
 

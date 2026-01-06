@@ -19,11 +19,7 @@
     "type": "git",
     "url": "git+https://github.com/fsmoothy/fsmoothy.git"
   },
-  "keywords": [
-    "fsm",
-    "state-machine",
-    "typescript"
-  ],
+  "keywords": ["fsm", "state-machine", "typescript"],
   "author": "Vassiliy Kuzenkov (bondiano)",
   "license": "MIT",
   "bugs": {
@@ -41,8 +37,5 @@
     "postdocs:build": "cp -r logo docs",
     "clean": "rm -rf dist"
   },
-  "files": [
-    "/package.json",
-    "/dist"
-  ]
+  "files": ["/package.json", "/dist"]
 }

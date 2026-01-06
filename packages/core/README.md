@@ -423,14 +423,6 @@ orderItemFSM.on(OrderItemEvent.create, function () {
 await orderItemFSM.create();
 ```
 
-You also able to use `bind` method to bind your own `this` keyword to the function.
-
-```typescript
-orderItemFSM.on(function () {
-  console.log(this.current);
-}.bind({ current: 'test' }));
-```
-
 ### Dependency injection
 
 You can pass dependencies to the fsm using the `inject` property.

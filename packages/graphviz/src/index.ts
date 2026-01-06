@@ -1,4 +1,4 @@
-import { toDot, digraph, attribute as _ } from 'ts-graphviz';
+import { attribute as _, digraph, toDot } from 'ts-graphviz';
 
 import type { IStateMachineInspectRepresentation } from '@fsmoothy/core';
 import type { RootGraphModel } from 'ts-graphviz';
