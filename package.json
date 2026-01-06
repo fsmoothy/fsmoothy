@@ -13,18 +13,24 @@
     "merge-coverage": "lcov-result-merger './packages/**/lcov.info' './coverage/lcov.info' --prepend-source-files --legacy-temp-file",
     "test": "turbo test",
     "update": "npx npm-check-updates -u",
-    "prepare": "husky install",
+    "prepare": "husky",
     "changeset": "changeset",
     "version": "changeset version",
     "release": "npm run build && changeset publish",
     "generate-package": "tsx tools/create-new-package.ts"
   },
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/fsmoothy/fsmoothy.git"
   },
-  "keywords": ["fsm", "state-machine", "typescript"],
+  "keywords": [
+    "fsm",
+    "state-machine",
+    "typescript"
+  ],
   "author": "bondiano <batbondik0@gmail.com>",
   "maintainers": [
     {
@@ -37,28 +43,29 @@
     "url": "https://github.com/fsmoothy/fsmoothy/issues"
   },
   "homepage": "https://github.com/fsmoothy/fsmoothy#readme",
-  "packageManager": "npm@10.9.0",
+  "packageManager": "npm@11.7.0",
   "devDependencies": {
-    "@biomejs/biome": "1.9.4",
-    "@changesets/changelog-github": "^0.5.0",
-    "@changesets/cli": "2.27.11",
-    "@commitlint/cli": "19.6.1",
-    "@commitlint/config-conventional": "19.6.0",
+    "@biomejs/biome": "2.3.11",
+    "@changesets/changelog-github": "^0.5.2",
+    "@changesets/cli": "2.29.8",
+    "@commitlint/cli": "20.3.0",
+    "@commitlint/config-conventional": "20.3.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
-    "@swc/core": "1.10.7",
-    "@vitest/coverage-v8": "2.1.8",
+    "@swc/core": "1.15.8",
+    "@vitest/coverage-v8": "4.0.16",
     "cz-conventional-changelog": "^3.3.0",
     "husky": "9.1.7",
     "lcov-result-merger": "5.0.1",
     "microbundle": "^0.15.1",
-    "semantic-release": "24.2.1",
-    "tsx": "4.19.2",
-    "turbo": "2.3.3",
-    "typedoc": "0.27.6",
-    "typescript": "5.7.3",
-    "unplugin-swc": "1.5.1",
-    "vitest": "2.1.8",
-    "zx": "8.3.0"
+    "semantic-release": "25.0.2",
+    "tsx": "4.21.0",
+    "turbo": "2.7.3",
+    "typedoc": "0.28.15",
+    "typescript": "5.9.3",
+    "unplugin-swc": "1.5.9",
+    "vite": "^7.3.0",
+    "vitest": "4.0.16",
+    "zx": "8.8.5"
   }
 }

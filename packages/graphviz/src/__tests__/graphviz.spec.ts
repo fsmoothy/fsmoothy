@@ -1,10 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import type { FsmContext } from '@fsmoothy/core';
 
 import { StateMachine } from '@fsmoothy/core';
-
+import { describe, expect, it } from 'vitest';
 import { render } from '../';
-
-import type { FsmContext } from '@fsmoothy/core';
 
 describe('graphviz', () => {
   it('should render a state machine', async () => {

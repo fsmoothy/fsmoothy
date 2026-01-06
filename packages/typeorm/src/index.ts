@@ -1,11 +1,11 @@
 export {
+  All,
+  IStateMachine,
+  isStateMachineTransitionError,
   StateMachine,
   StateMachineParameters,
-  t,
-  IStateMachine,
   Transition,
-  isStateMachineTransitionError,
-  All,
+  t,
 } from '@fsmoothy/core';
 export { StateMachineEntity } from './fsm.entity';
 export { state } from './state';

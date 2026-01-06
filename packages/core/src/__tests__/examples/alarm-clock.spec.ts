@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
-
-import { StateMachine, t } from '../..';
-
 import type { FsmContext } from '../..';
+import { StateMachine, t } from '../..';
 
 enum ClockState {
   Clock = 'clock',

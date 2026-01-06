@@ -1,3 +1,5 @@
+import type { FsmContext } from '@fsmoothy/core';
+import type { QueryRunner } from 'typeorm';
 import {
   BaseEntity,
   Column,
@@ -10,11 +12,7 @@ import {
 } from 'typeorm';
 import { PGliteDriver } from 'typeorm-pglite';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-
 import { StateMachineEntity, state, t } from '../..';
-
-import type { FsmContext } from '@fsmoothy/core';
-import type { QueryRunner } from 'typeorm';
 
 const fakeDate = new Date('2020-01-01');
 

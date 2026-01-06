@@ -1,7 +1,6 @@
-import { attribute as _, digraph, toDot } from 'ts-graphviz';
-
 import type { IStateMachineInspectRepresentation } from '@fsmoothy/core';
 import type { RootGraphModel } from 'ts-graphviz';
+import { attribute as _, digraph, toDot } from 'ts-graphviz';
 
 const prettifyData = (data: unknown): string => {
   if (typeof data !== 'object') {

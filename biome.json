@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.3.11/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -7,13 +7,14 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "ignore": [
-      "**/dist/**",
-      "**/node_modules/**",
-      "**/coverage/**",
-      "**/build/**",
-      "**/html/**",
-      "**/public/**"
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/node_modules",
+      "!**/coverage",
+      "!**/build",
+      "!**/html",
+      "!**/public"
     ]
   },
   "formatter": {
@@ -23,9 +24,7 @@
     "lineEnding": "lf",
     "lineWidth": 80
   },
-  "organizeImports": {
-    "enabled": true
-  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
     "enabled": true,
     "rules": {
@@ -50,16 +49,15 @@
         "useImportType": "error",
         "useThrowNewError": "error",
         "noNegationElse": "error",
-        "noNonNullAssertion": "off"
+        "noNonNullAssertion": "off",
+        "noNestedTernary": "error"
       },
       "suspicious": {
-        "noConsoleLog": "error",
         "noRedeclare": "error",
-        "noExplicitAny": "off"
+        "noExplicitAny": "off",
+        "noConsole": { "level": "error", "options": { "allow": ["log"] } }
       },
-      "nursery": {
-        "noNestedTernary": "error"
-      }
+      "nursery": {}
     }
   },
   "javascript": {
@@ -77,11 +75,11 @@
   },
   "overrides": [
     {
-      "include": ["tools/**"],
+      "includes": ["**/tools/**"],
       "linter": {
         "rules": {
           "suspicious": {
-            "noConsoleLog": "off"
+            "noConsole": { "level": "off", "options": { "allow": ["log"] } }
           }
         }
       }

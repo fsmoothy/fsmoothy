@@ -1,16 +1,14 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import { describe, expect, it, vi } from 'vitest';
-
+import type { FsmContext } from '..';
 import {
   All,
-  StateMachine,
   isStateMachineTransitionError,
   nested,
   parallel,
+  StateMachine,
   t,
 } from '..';
-
-import type { FsmContext } from '..';
 
 enum State {
   idle = 'idle',

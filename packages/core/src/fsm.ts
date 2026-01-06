@@ -1,6 +1,6 @@
 import {
-  StateMachineTransitionError,
   isStateMachineTransitionError,
+  StateMachineTransitionError,
 } from './fsm.error';
 import {
   addEventMethods,
@@ -13,9 +13,8 @@ import {
   prepareTransitions,
 } from './heplers';
 import { All } from './symbols';
-import { t } from './transition';
-
 import type { TransitionOptions } from './transition';
+import { t } from './transition';
 import type {
   AllowedNames,
   Callback,

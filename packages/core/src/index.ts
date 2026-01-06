@@ -1,13 +1,13 @@
 export { StateMachine } from './fsm';
-export { t } from './transition';
+export { isStateMachineTransitionError } from './fsm.error';
 export { nested, parallel } from './nested';
+export { All } from './symbols';
+export { t } from './transition';
 export type {
-  Transition,
+  AllowedNames,
   FsmContext,
   IStateMachine,
-  AllowedNames,
-  StateMachineParameters,
   IStateMachineInspectRepresentation,
+  StateMachineParameters,
+  Transition,
 } from './types';
-export { isStateMachineTransitionError } from './fsm.error';
-export { All } from './symbols';

@@ -1,3 +1,4 @@
+import type { FsmContext } from '@fsmoothy/core';
 import {
   Column,
   DataSource,
@@ -15,10 +16,7 @@ import {
   it,
   vi,
 } from 'vitest';
-
 import { StateMachineEntity, state, t } from '../';
-
-import type { FsmContext } from '@fsmoothy/core';
 
 enum OrderState {
   Draft = 'draft',
