@@ -1,6 +1,6 @@
 {
   "name": "@fsmoothy/typeorm",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "private": false,
   "author": "Vassiliy Kuzenkov (bondiano)",
   "license": "MIT",
@@ -40,7 +40,7 @@
     "clean": "rm -rf dist"
   },
   "peerDependencies": {
-    "typeorm": "^0.3.20"
+    "typeorm": "^0.3.20 || ^1.0.0"
   },
   "commit": "cz",
   "config": {
@@ -58,6 +58,6 @@
   "devDependencies": {
     "@electric-sql/pglite": "^0.3.14",
     "@types/node": "^25.0.3",
-    "typeorm-pglite": "^0.3.2"
+    "typeorm-pglite": "^0.3.4"
   }
 }
