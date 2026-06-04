@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "@fsmoothy/core": "1.4.0",
-    "ts-graphviz": "3.0.6"
+    "ts-graphviz": "3.0.7"
   },
   "files": [
     "/package.json",

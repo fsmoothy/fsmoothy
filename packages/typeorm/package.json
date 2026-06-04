@@ -56,8 +56,8 @@
     "/dist"
   ],
   "devDependencies": {
-    "@electric-sql/pglite": "^0.3.14",
-    "@types/node": "^25.0.3",
+    "@electric-sql/pglite": "^0.5.1",
+    "@types/node": "^25.9.1",
     "typeorm-pglite": "^0.3.4"
   }
 }

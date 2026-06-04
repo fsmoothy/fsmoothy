@@ -4,8 +4,8 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "strictPropertyInitialization": false,
-    "outDir": "./dist",
-    "baseUrl": "./"
+    "types": ["node"],
+    "outDir": "./dist"
   },
   "include": ["src/**/*", "./vitest.config.ts"]
 }
