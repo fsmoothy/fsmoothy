@@ -1,9 +1,17 @@
 import { defineEvents, defineStates } from '@fsmoothy/core';
-import { Column, DataSource, Entity, PrimaryGeneratedColumn } from 'typeorm';
-import { PGliteDriver } from 'typeorm-pglite';
+import {
+  Column,
+  type DataSource,
+  Entity,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { StateMachineEntity, state, t } from '../..';
+import {
+  createTestDataSource,
+  destroyTestDataSource,
+} from '../helpers/database';
 
 /**
  * First, user submits a file to the server.
@@ -59,24 +67,11 @@ describe('File upload', () => {
   let dataSource: DataSource;
 
   beforeAll(async () => {
-    dataSource = new DataSource({
-      name: (Date.now() * Math.random()).toString(16),
-      database: ':memory:',
-      dropSchema: true,
-      entities: [File],
-      logging: ['error', 'warn'],
-      synchronize: true,
-      type: 'postgres',
-      driver: new PGliteDriver().driver,
-    });
-
-    await dataSource.initialize();
-    await dataSource.synchronize();
+    dataSource = await createTestDataSource([File]);
   });
 
   afterAll(async () => {
-    await dataSource.dropDatabase();
-    await dataSource.destroy();
+    await destroyTestDataSource(dataSource);
   });
 
   afterEach(async () => {

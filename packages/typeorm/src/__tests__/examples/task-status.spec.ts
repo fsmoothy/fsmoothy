@@ -1,18 +1,20 @@
 import { defineEvents, defineStates, type FsmContext } from '@fsmoothy/core';
-import type { QueryRunner } from 'typeorm';
+import type { DataSource, QueryRunner } from 'typeorm';
 import {
   BaseEntity,
   Column,
-  DataSource,
   Entity,
   JoinColumn,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { PGliteDriver } from 'typeorm-pglite';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { StateMachineEntity, state, t } from '../..';
+import {
+  createTestDataSource,
+  destroyTestDataSource,
+} from '../helpers/database';
 
 const fakeDate = new Date('2020-01-01');
 
@@ -126,24 +128,11 @@ describe('Task Status', () => {
   let dataSource: DataSource;
 
   beforeAll(async () => {
-    dataSource = new DataSource({
-      name: (Date.now() * Math.random()).toString(16),
-      database: ':memory:',
-      dropSchema: true,
-      entities: [Tag, Task],
-      logging: ['error', 'warn'],
-      synchronize: true,
-      type: 'postgres',
-      driver: new PGliteDriver().driver,
-    });
-
-    await dataSource.initialize();
-    await dataSource.synchronize();
+    dataSource = await createTestDataSource([Tag, Task]);
   });
 
   afterAll(async () => {
-    await dataSource.dropDatabase();
-    await dataSource.destroy();
+    await destroyTestDataSource(dataSource);
   });
 
   it('should be able to pass user flow', async () => {
